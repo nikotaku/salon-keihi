@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, Loader2, LogOut, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2, LogOut, Mail, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -193,20 +193,52 @@ function MembersSection() {
     void load();
   }, [load]);
 
+  const invite = (payload: Record<string, unknown>) =>
+    supabase.functions.invoke<{ ok: boolean; mode: "invited" | "magic_link"; error?: string }>("salon-invite-member", {
+      body: { ...payload, redirect_to: `${window.location.origin}/` },
+    });
+
+  const inviteError = async (error: unknown) => {
+    // Edge Function が返したエラーメッセージを取り出す
+    const context = (error as { context?: Response }).context;
+    if (context && typeof context.json === "function") {
+      try {
+        const body = await context.json();
+        if (body?.error) return String(body.error);
+      } catch {
+        // 読めなければ下へ
+      }
+    }
+    return describeError(error);
+  };
+
   const add = async () => {
     if (!email.trim()) return;
     setAdding(true);
-    const { error } = await supabase.rpc("salon_add_member", {
-      p_email: email.trim(),
-      p_role: role,
-      p_shop_ids: role === "staff" && limitTo.length ? limitTo : null,
+    const { data, error } = await invite({
+      email: email.trim(),
+      role,
+      shop_ids: role === "staff" && limitTo.length ? limitTo : null,
     });
     setAdding(false);
-    if (error) return toast.error(describeError(error));
-    toast.success("メンバーを追加しました");
+    if (error) return toast.error(await inviteError(error));
+    toast.success(
+      data?.mode === "invited"
+        ? `${email.trim()} に招待メールを送りました。メールのリンクからログインできます`
+        : `${email.trim()} をメンバーに追加して、ログインリンクを送りました`,
+    );
     setEmail("");
     setLimitTo([]);
     void load();
+  };
+
+  const [resending, setResending] = useState<string | null>(null);
+  const resend = async (member: Member) => {
+    setResending(member.user_id);
+    const { error } = await invite({ email: member.email, resend: true });
+    setResending(null);
+    if (error) return toast.error(await inviteError(error));
+    toast.success(`${member.email} にログインリンクを送りました`);
   };
 
   const remove = async (member: Member) => {
@@ -238,6 +270,18 @@ function MembersSection() {
                   </p>
                 </div>
                 {member.user_id !== session?.user.id && (
+                  <button
+                    type="button"
+                    onClick={() => void resend(member)}
+                    disabled={resending === member.user_id}
+                    className="flex items-center gap-1 rounded px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted disabled:opacity-50"
+                    aria-label="ログインリンクを送る"
+                  >
+                    {resending === member.user_id ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                    リンク送信
+                  </button>
+                )}
+                {member.user_id !== session?.user.id && (
                   <button type="button" onClick={() => void remove(member)} className="rounded p-1.5 text-muted-foreground hover:bg-muted" aria-label="外す">
                     <Trash2 size={16} />
                   </button>
@@ -247,7 +291,7 @@ function MembersSection() {
           </ul>
         )}
         <div className="space-y-2 rounded-lg bg-muted/60 p-3">
-          <Label htmlFor="member-email">メンバーを追加（キャスカンのアカウントのメールアドレス）</Label>
+          <Label htmlFor="member-email">メンバーを招待（メールアドレスにログイン用リンクが届きます）</Label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input id="member-email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-10" />
             <Select value={role} onChange={(e) => setRole(e.target.value as Role)} className="h-10 sm:w-40">
@@ -255,7 +299,7 @@ function MembersSection() {
               <option value="owner">オーナー</option>
             </Select>
             <Button onClick={() => void add()} disabled={adding || !email.trim()}>
-              {adding && <Loader2 className="animate-spin" />}追加
+              {adding ? <Loader2 className="animate-spin" /> : <Mail />}招待する
             </Button>
           </div>
           {role === "staff" && (
@@ -275,6 +319,8 @@ function MembersSection() {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
+            パスワードは不要です。登録したメールアドレスにリンクが届き、押すとそのままログインできます（アカウントがない人には自動で作られます）。次回からはログイン画面でメールアドレスを入れるとリンクが届きます。
+            <br />
             オーナーは設定の変更とメンバーの管理ができます。スタッフは経費・固定費・売上の入力ができます（店舗を選ぶと、その店舗の分だけ見られます）。
           </p>
         </div>

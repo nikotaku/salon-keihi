@@ -17,7 +17,9 @@
 - キャスカンの `store_id` / `store_isolation` とは別で、`salon_members` に登録された人だけが読み書きできる（RLS）
 - 全店共通（本部）の経費は `shop_id = null`。店舗ごとの利益には入れず、全店の利益からだけ引く
 - 領収書は非公開バケット `salon-receipts`（`店舗ID/年-月/…`、全店共通は `common/…`）
-- ログインはキャスカンと同じアカウント。メンバーの追加は「設定 → メンバー」（オーナーのみ）
+- ログインはメールアドレスだけ（届いたリンクを押す）。キャスカンのアカウントならパスワードでも入れる
+- メンバーの招待は「設定 → メンバー」（オーナーのみ）。メールアドレスを入れると Edge Function `salon-invite-member` がアカウントを作って（なければ）ログインリンクをメールで送り、`salon_members` に登録する
+- Supabase の Auth → URL Configuration の Redirect URLs に `https://salon-keihi.vercel.app/**` が必要
 
 ## 開発
 
