@@ -1,11 +1,11 @@
 // サロン経費管理：オーナーがメールアドレスを登録すると、その人にログイン用リンクをメールで送る。
 // - まだアカウントがない人 → アカウントを作って招待メール（リンクを押すとそのままログイン）
-// - もうアカウントがある人（キャスカン利用者など） → ログインリンク（マジックリンク）を送る
+// - もうアカウントがある人 → ログインリンク（マジックリンク）を送る
 // どちらも salon_members に登録（resend のときは登録内容は変えずにリンクだけ送り直す）。
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ALLOWED_ORIGINS = ["https://salon-keihi.vercel.app", "http://localhost:8081"];
-const DEFAULT_REDIRECT = "https://salon-keihi.vercel.app/";
+const ALLOWED_ORIGINS = ["https://salon-keihi-j6uh.vercel.app", "https://salon-keihi.vercel.app", "http://localhost:8081"];
+const DEFAULT_REDIRECT = "https://salon-keihi-j6uh.vercel.app/";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

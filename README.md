@@ -1,7 +1,7 @@
 # サロン経費管理（salon-keihi）
 
 美容サロン3店舗（ネイルサロン・国分町サロン（パーソナルネイル）・アイラッシュ／アイブロー）の経費を一元管理するサイト。
-キャスカン（nikotaku/newkyasukan）の `apps/salon-keihi` から独立させたリポジトリ。Vercel ではルートディレクトリ指定なしでそのままデプロイできる。
+キャスカン（nikotaku/newkyasukan）の `apps/salon-keihi` から独立させたリポジトリ。Vercel は `salon-keihi-j6uh`（https://salon-keihi-j6uh.vercel.app）。
 
 ## できること
 
@@ -13,13 +13,14 @@
 
 ## データ
 
-- キャスカンと同じ Supabase プロジェクトの `salon_*` テーブル（`supabase/migrations/` に同梱。適用済みのものはキャスカン側と同一）
-- キャスカンの `store_id` / `store_isolation` とは別で、`salon_members` に登録された人だけが読み書きできる（RLS）
+- 経費管理専用の Supabase プロジェクト `salon-keihi`（`rvkqbxahwlzcyburvjvw`）の `salon_*` テーブル。キャスカンとは別
+- `salon_members` に登録された人だけが読み書きできる（RLS）
 - 全店共通（本部）の経費は `shop_id = null`。店舗ごとの利益には入れず、全店の利益からだけ引く
 - 領収書は非公開バケット `salon-receipts`（`店舗ID/年-月/…`、全店共通は `common/…`）
-- ログインはメールアドレスだけ（届いたリンクを押す）。キャスカンのアカウントならパスワードでも入れる
+- ログインはメールアドレスだけ（届いたリンクを押す）。パスワードはない
 - メンバーの招待は「設定 → メンバー」（オーナーのみ）。メールアドレスを入れると Edge Function `salon-invite-member` がアカウントを作って（なければ）ログインリンクをメールで送り、`salon_members` に登録する
-- Supabase の Auth → URL Configuration の Redirect URLs に `https://salon-keihi.vercel.app/**` が必要
+- Supabase の Auth → URL Configuration：Site URL を `https://salon-keihi-j6uh.vercel.app`、Redirect URLs に `https://salon-keihi-j6uh.vercel.app/**`
+- スタッフにメールを送るには Auth → SMTP に送信サービス（Resend など）が必要（標準のメールはプロジェクトのメンバー宛にしか届かない）
 
 ## 開発
 

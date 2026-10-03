@@ -6,9 +6,7 @@ import { Input, Label } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 
 export default function Login() {
-  const [mode, setMode] = useState<"link" | "password">("link");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -37,15 +35,6 @@ export default function Login() {
     setSentTo(address);
   };
 
-  const signInWithPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setLoading(false);
-    if (signInError) setError("メールアドレスかパスワードが違います");
-  };
-
   return (
     <div className="flex min-h-dvh items-center justify-center px-4">
       <Card className="w-full max-w-sm">
@@ -69,37 +58,20 @@ export default function Login() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={mode === "link" ? sendLink : signInWithPassword} className="space-y-4">
+            <form onSubmit={sendLink} className="space-y-4">
               <div>
                 <Label htmlFor="email">メールアドレス</Label>
                 <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
-              {mode === "password" && (
-                <div>
-                  <Label htmlFor="password">パスワード</Label>
-                  <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                </div>
-              )}
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" size="lg" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="animate-spin" />}
-                {mode === "link" ? "ログインリンクを送る" : "ログイン"}
+                ログインリンクを送る
               </Button>
             </form>
           )}
 
-          {!sentTo && (
-            <button
-              type="button"
-              className="text-xs text-muted-foreground underline underline-offset-2"
-              onClick={() => {
-                setMode(mode === "link" ? "password" : "link");
-                setError(null);
-              }}
-            >
-              {mode === "link" ? "パスワードでログイン（キャスカンのアカウント）" : "メールのリンクでログイン"}
-            </button>
-          )}
+          {!sentTo && <p className="text-xs text-muted-foreground">パスワードは不要です。招待されたメールアドレスを入れると、ログイン用のリンクが届きます。</p>}
         </CardContent>
       </Card>
     </div>

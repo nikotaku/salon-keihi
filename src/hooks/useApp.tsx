@@ -60,6 +60,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [expenseDialog, setExpenseDialog] = useState<{ open: boolean; expense: Expense | null }>({ open: false, expense: null });
 
   useEffect(() => {
+    // メールのログインリンク（?token_hash=…&type=…）で開かれたら、その場でログインする
+    const params = new URLSearchParams(window.location.search);
+    const tokenHash = params.get("token_hash");
+    const type = params.get("type");
+    if (tokenHash && (type === "magiclink" || type === "invite" || type === "email" || type === "signup")) {
+      window.history.replaceState(null, "", window.location.pathname);
+      void supabase.auth.verifyOtp({ token_hash: tokenHash, type: type === "magiclink" || type === "signup" ? "email" : type });
+    }
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
       setAuthLoading(false);

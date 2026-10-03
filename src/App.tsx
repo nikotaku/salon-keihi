@@ -18,7 +18,7 @@ function NoAccess({ email }: { email: string | undefined }) {
         <CardContent className="space-y-4 p-6 text-sm">
           <h1 className="text-lg font-bold">このアカウントはまだ使えません</h1>
           <p className="text-muted-foreground">
-            {email} はサロン経費管理のメンバーに登録されていません。オーナーに「設定 → メンバー」から追加してもらってください。
+            {email} はサロン経費管理のメンバーに登録されていません。オーナーに「設定 → メンバー」から招待してもらってください。
           </p>
           <Button variant="outline" className="w-full" onClick={() => void supabase.auth.signOut()}>
             別のアカウントでログイン
