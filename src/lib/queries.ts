@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Expense, ExpenseTemplate, MonthlySales } from "./types";
+import type { Expense, ExpenseTemplate, MonthlySales, SalesEntry } from "./types";
 
 export const EXPENSE_COLUMNS =
   "id,shop_id,expense_date,category_id,amount,payment_method,vendor,description,receipt_path,template_id,created_at";
@@ -40,6 +40,22 @@ export function fetchSales(fromMonth: string, toMonth: string) {
       .gte("month", `${fromMonth}-01`)
       .lte("month", `${toMonth}-01`)
       .order("month")
+      .range(from, to),
+  );
+}
+
+export const SALES_ENTRY_COLUMNS = "id,shop_id,sales_date,amount,customer_count,note,created_at";
+
+// 日付ごとの売上（fromDate / toDate は YYYY-MM-DD）
+export function fetchSalesEntries(fromDate: string, toDate: string) {
+  return fetchAll<SalesEntry>((from, to) =>
+    supabase
+      .from("salon_sales_entries")
+      .select(SALES_ENTRY_COLUMNS)
+      .gte("sales_date", fromDate)
+      .lte("sales_date", toDate)
+      .order("sales_date", { ascending: false })
+      .order("created_at", { ascending: false })
       .range(from, to),
   );
 }

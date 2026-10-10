@@ -53,6 +53,17 @@ export interface MonthlySales {
   note: string | null;
 }
 
+// 日付ごとの売上（月合計 salon_monthly_sales はDBのトリガーが自動で足し上げる）
+export interface SalesEntry {
+  id: string;
+  shop_id: string;
+  sales_date: string;
+  amount: number;
+  customer_count: number | null;
+  note: string | null;
+  created_at: string;
+}
+
 export interface Member {
   user_id: string;
   email: string;
