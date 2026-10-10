@@ -9,6 +9,7 @@ import { useApp } from "@/hooks/useApp";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import { formatDay, monthEnd, monthStart, PAYMENT_LABELS, yen } from "@/lib/format";
 import { fetchExpenses } from "@/lib/queries";
+import { enteredAtLabel } from "@/lib/salesEntries";
 import { COMMON_KEY, COMMON_LABEL, shopKey } from "@/lib/summary";
 import type { CategoryKind, Expense } from "@/lib/types";
 import { cn, describeError } from "@/lib/utils";
@@ -180,6 +181,7 @@ export default function Expenses() {
                             {PAYMENT_LABELS[e.payment_method]}
                             {e.vendor ? ` ・ ${e.vendor}` : ""}
                             {e.description ? ` ・ ${e.description}` : ""}
+                            {` ・ 入力 ${enteredAtLabel(e.created_at)}`}
                           </span>
                         </span>
                         <span className="shrink-0 text-sm font-semibold tabular">{yen(e.amount)}</span>
