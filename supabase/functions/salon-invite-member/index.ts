@@ -1,7 +1,9 @@
-// サロン経費管理：オーナーがメールアドレスを登録すると、その人にログイン用リンクをメールで送る。
-// - まだアカウントがない人 → アカウントを作って招待メール（リンクを押すとそのままログイン）
-// - もうアカウントがある人 → ログインリンク（マジックリンク）を送る
-// どちらも salon_members に登録（resend のときは登録内容は変えずにリンクだけ送り直す）。
+// サロン経費管理：オーナーがメールアドレスを登録すると、その人用のログインリンクを発行して返す。
+// メールは送らない（Supabase 標準のメールはプロジェクトのメンバー宛にしか届かないため）。
+// 返したリンクをオーナーが LINE などで本人に送り、本人がリンクを押すとそのままログインできる。
+// - まだアカウントがない人 → アカウントを作ってからリンクを発行
+// - もうアカウントがある人 → リンクだけ発行
+// どちらも salon_members に登録（resend のときは登録内容は変えずにリンクだけ発行し直す）。
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = ["https://salon-keihi-j6uh.vercel.app", "https://salon-keihi.vercel.app", "http://localhost:8081"];
@@ -24,7 +26,6 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "POST だけ受け付けます" }, 405);
 
   const url = Deno.env.get("SUPABASE_URL")!;
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
@@ -54,9 +55,9 @@ Deno.serve(async (req) => {
   if (lookupError) return json({ error: `確認できませんでした: ${lookupError.message}` }, 500);
 
   let userId = existingId as string | null;
-  let mode: "invited" | "magic_link";
+  const created = !userId;
 
-  // 送り直しはメンバーだけ（先に確認してから送る）
+  // 発行し直しはメンバーだけ（先に確認してから発行する）
   if (body.resend) {
     if (!userId) return json({ error: "このメールアドレスはまだ登録されていません" }, 404);
     const { data: member } = await admin.from("salon_members").select("user_id").eq("user_id", userId).maybeSingle();
@@ -64,17 +65,10 @@ Deno.serve(async (req) => {
   }
 
   if (!userId) {
-    // 新しい人：アカウントを作って招待メールを送る
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
-    if (error || !data.user) return json({ error: `招待メールを送れませんでした: ${error?.message ?? "不明なエラー"}` }, 400);
+    // 新しい人：メール確認済みのアカウントを作る（メールは送らない）
+    const { data, error } = await admin.auth.admin.createUser({ email, email_confirm: true });
+    if (error || !data.user) return json({ error: `アカウントを作れませんでした: ${error?.message ?? "不明なエラー"}` }, 400);
     userId = data.user.id;
-    mode = "invited";
-  } else {
-    // もうアカウントがある人：ログインリンクを送る
-    const anon = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { error } = await anon.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo } });
-    if (error) return json({ error: `ログインリンクを送れませんでした: ${error.message}` }, 400);
-    mode = "magic_link";
   }
 
   if (!body.resend) {
@@ -84,5 +78,14 @@ Deno.serve(async (req) => {
     if (error) return json({ error: `メンバーに登録できませんでした: ${error.message}` }, 500);
   }
 
-  return json({ ok: true, mode, user_id: userId });
+  // ログインリンクを発行（メールは送られない）。アプリが ?token_hash=…&type=magiclink を受け取ってログインする
+  const { data: link, error: linkError } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+  const hashed = link?.properties?.hashed_token;
+  if (linkError || !hashed) return json({ error: `ログインリンクを作れませんでした: ${linkError?.message ?? "不明なエラー"}` }, 400);
+
+  const loginUrl = new URL(redirectTo);
+  loginUrl.searchParams.set("token_hash", hashed);
+  loginUrl.searchParams.set("type", "magiclink");
+
+  return json({ ok: true, mode: created ? "created" : "existing", user_id: userId, login_url: loginUrl.toString() });
 });
