@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, Loader2, LogOut, Mail, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Link2, Loader2, LogOut, Plus, Share2, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -181,6 +181,7 @@ function MembersSection() {
   const [role, setRole] = useState<Role>("staff");
   const [limitTo, setLimitTo] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
+  const [issued, setIssued] = useState<{ email: string; url: string } | null>(null);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("salon_list_members");
@@ -194,7 +195,7 @@ function MembersSection() {
   }, [load]);
 
   const invite = (payload: Record<string, unknown>) =>
-    supabase.functions.invoke<{ ok: boolean; mode: "invited" | "magic_link"; error?: string }>("salon-invite-member", {
+    supabase.functions.invoke<{ ok: boolean; mode: "created" | "existing"; login_url: string; error?: string }>("salon-invite-member", {
       body: { ...payload, redirect_to: `${window.location.origin}/` },
     });
 
@@ -221,12 +222,9 @@ function MembersSection() {
       shop_ids: role === "staff" && limitTo.length ? limitTo : null,
     });
     setAdding(false);
-    if (error) return toast.error(await inviteError(error));
-    toast.success(
-      data?.mode === "invited"
-        ? `${email.trim()} に招待メールを送りました。メールのリンクからログインできます`
-        : `${email.trim()} をメンバーに追加して、ログインリンクを送りました`,
-    );
+    if (error || !data?.login_url) return toast.error(error ? await inviteError(error) : "ログインリンクを作れませんでした");
+    setIssued({ email: email.trim(), url: data.login_url });
+    toast.success(`${email.trim()} をメンバーに追加しました。下のリンクを本人に送ってください`);
     setEmail("");
     setLimitTo([]);
     void load();
@@ -235,10 +233,29 @@ function MembersSection() {
   const [resending, setResending] = useState<string | null>(null);
   const resend = async (member: Member) => {
     setResending(member.user_id);
-    const { error } = await invite({ email: member.email, resend: true });
+    const { data, error } = await invite({ email: member.email, resend: true });
     setResending(null);
-    if (error) return toast.error(await inviteError(error));
-    toast.success(`${member.email} にログインリンクを送りました`);
+    if (error || !data?.login_url) return toast.error(error ? await inviteError(error) : "ログインリンクを作れませんでした");
+    setIssued({ email: member.email, url: data.login_url });
+  };
+
+  const copyLink = async () => {
+    if (!issued) return;
+    try {
+      await navigator.clipboard.writeText(issued.url);
+      toast.success("リンクをコピーしました");
+    } catch {
+      toast.error("コピーできませんでした。リンクを長押ししてコピーしてください");
+    }
+  };
+
+  const shareLink = async () => {
+    if (!issued) return;
+    try {
+      await navigator.share({ title: "サロン経費管理", text: "サロン経費管理のログイン用リンクです。押すとそのままログインできます。", url: issued.url });
+    } catch {
+      // キャンセルされたときは何もしない
+    }
   };
 
   const remove = async (member: Member) => {
@@ -275,10 +292,10 @@ function MembersSection() {
                     onClick={() => void resend(member)}
                     disabled={resending === member.user_id}
                     className="flex items-center gap-1 rounded px-2 py-1.5 text-xs text-muted-foreground hover:bg-muted disabled:opacity-50"
-                    aria-label="ログインリンクを送る"
+                    aria-label="ログインリンクを発行する"
                   >
-                    {resending === member.user_id ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                    リンク送信
+                    {resending === member.user_id ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+                    リンク発行
                   </button>
                 )}
                 {member.user_id !== session?.user.id && (
@@ -290,8 +307,32 @@ function MembersSection() {
             ))}
           </ul>
         )}
+        {issued && (
+          <div className="space-y-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
+            <div className="flex items-start gap-2">
+              <p className="flex-1 text-sm">
+                <span className="font-semibold">{issued.email}</span> さんのログイン用リンクです。LINE などで本人に送ってください。
+              </p>
+              <button type="button" onClick={() => setIssued(null)} className="rounded p-1 text-muted-foreground hover:bg-muted" aria-label="閉じる">
+                <X size={16} />
+              </button>
+            </div>
+            <Input readOnly value={issued.url} onFocus={(e) => e.currentTarget.select()} className="h-10 text-xs" />
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => void copyLink()}>
+                <Copy />コピー
+              </Button>
+              {typeof navigator !== "undefined" && "share" in navigator && (
+                <Button className="flex-1" onClick={() => void shareLink()}>
+                  <Share2 />送る
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">リンクは1回だけ使えて、時間がたつと使えなくなります（目安1時間）。使えなかったら一覧の「リンク発行」で作り直してください。</p>
+          </div>
+        )}
         <div className="space-y-2 rounded-lg bg-muted/60 p-3">
-          <Label htmlFor="member-email">メンバーを招待（メールアドレスにログイン用リンクが届きます）</Label>
+          <Label htmlFor="member-email">メンバーを追加（ログイン用リンクが発行されます）</Label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input id="member-email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} className="h-10" />
             <Select value={role} onChange={(e) => setRole(e.target.value as Role)} className="h-10 sm:w-40">
@@ -299,7 +340,7 @@ function MembersSection() {
               <option value="owner">オーナー</option>
             </Select>
             <Button onClick={() => void add()} disabled={adding || !email.trim()}>
-              {adding ? <Loader2 className="animate-spin" /> : <Mail />}招待する
+              {adding ? <Loader2 className="animate-spin" /> : <UserPlus />}追加する
             </Button>
           </div>
           {role === "staff" && (
@@ -319,7 +360,7 @@ function MembersSection() {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            パスワードは不要です。登録したメールアドレスにリンクが届き、押すとそのままログインできます（アカウントは自動で作られます）。次回からはログイン画面でメールアドレスを入れるとリンクが届きます。
+            どんなメールアドレスでも追加できます。パスワードは不要で、発行されたリンクを本人が押すとそのままログインできます（アカウントは自動で作られます）。ログアウトしなければ次からもログインしたままです。ログインし直すときは「リンク発行」で新しいリンクを送ってください。
             <br />
             オーナーは設定の変更とメンバーの管理ができます。スタッフは経費・固定費・売上の入力ができます（店舗を選ぶと、その店舗の分だけ見られます）。
           </p>
