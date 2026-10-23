@@ -23,7 +23,8 @@ import { fetchSales, fetchSalesEntries } from "@/lib/queries";
 import { enteredAtLabel, groupEntriesByDate, totalsByShop } from "@/lib/salesEntries";
 import { supabase } from "@/lib/supabase";
 import type { MonthlySales, SalesEntry } from "@/lib/types";
-import { describeError } from "@/lib/utils";
+import { cn, describeError } from "@/lib/utils";
+import { StaffSales } from "@/components/StaffSales";
 
 interface Form {
   date: string;
@@ -37,7 +38,7 @@ interface Form {
  * 売上：日付と店舗を選んで1日ずつ入れる（salon_sales_entries）。いつの売上がいくらか一覧で見られる。
  * 月合計（salon_monthly_sales）はDBのトリガーが日ごとの売上から自動で足し上げ、ダッシュボード・利益はそれを使う。
  */
-export default function Sales() {
+function ShopSales() {
   const { month, usableShops, colors, shopName } = useApp();
   const [entries, setEntries] = useState<SalesEntry[]>([]);
   const [history, setHistory] = useState<MonthlySales[]>([]);
@@ -134,7 +135,6 @@ export default function Sales() {
   };
 
   return (
-    <Layout title="売上" actions={<MonthSwitcher />}>
       <div className="space-y-4">
         <Card>
           <CardHeader>
@@ -281,6 +281,50 @@ export default function Sales() {
             ))}
           </div>
         )}
+      </div>
+  );
+}
+
+type SalesTab = "shop" | "staff";
+const TAB_KEY = "salon-keihi:sales-tab";
+
+export default function Sales() {
+  const [tab, setTabState] = useState<SalesTab>(() => {
+    try {
+      return localStorage.getItem(TAB_KEY) === "staff" ? "staff" : "shop";
+    } catch {
+      return "shop";
+    }
+  });
+  const setTab = (next: SalesTab) => {
+    setTabState(next);
+    try {
+      localStorage.setItem(TAB_KEY, next);
+    } catch {
+      // 覚えられなくても切り替えはできる
+    }
+  };
+  return (
+    <Layout title="売上" actions={<MonthSwitcher />}>
+      <div className="space-y-4">
+        <div role="tablist" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+          {([["shop", "店舗の売上"], ["staff", "個人の売上"]] as const).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
+              className={cn(
+                "rounded-md py-2 text-sm font-medium transition-colors",
+                tab === key ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {tab === "shop" ? <ShopSales /> : <StaffSales />}
       </div>
     </Layout>
   );

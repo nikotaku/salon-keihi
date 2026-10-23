@@ -1,9 +1,9 @@
 // 日付ごとの売上の並べ方・合計（画面とテストで共通）
-import type { SalesEntry } from "./types.ts";
+import type { SalesEntry, StaffSalesEntry } from "./types.ts";
 
 /** 日付の新しい順に、日ごとにまとめる */
-export function groupEntriesByDate(entries: SalesEntry[]) {
-  const groups = new Map<string, SalesEntry[]>();
+export function groupEntriesByDate<T extends Pick<SalesEntry, "sales_date" | "created_at" | "amount">>(entries: T[]) {
+  const groups = new Map<string, T[]>();
   const sorted = [...entries].sort((a, b) => b.sales_date.localeCompare(a.sales_date) || b.created_at.localeCompare(a.created_at));
   for (const entry of sorted) groups.set(entry.sales_date, [...(groups.get(entry.sales_date) ?? []), entry]);
   return [...groups.entries()].map(([date, rows]) => ({
@@ -28,6 +28,21 @@ export function totalsByShop(entries: SalesEntry[]) {
     totals.set(entry.shop_id, current);
   }
   return totals;
+}
+
+/** スタッフごとの合計（金額・出勤日数・客数）。金額の多い順 */
+export function totalsByStaff(entries: StaffSalesEntry[]) {
+  const totals = new Map<string, { staffId: string; shopId: string; amount: number; days: Set<string>; customers: number | null }>();
+  for (const entry of entries) {
+    const current = totals.get(entry.staff_id) ?? { staffId: entry.staff_id, shopId: entry.shop_id, amount: 0, days: new Set<string>(), customers: null };
+    current.amount += entry.amount;
+    current.days.add(entry.sales_date);
+    if (entry.customer_count != null) current.customers = (current.customers ?? 0) + entry.customer_count;
+    totals.set(entry.staff_id, current);
+  }
+  return [...totals.values()]
+    .map(({ days, ...rest }) => ({ ...rest, days: days.size }))
+    .sort((a, b) => b.amount - a.amount);
 }
 
 /** 入力した日時（日本時間の M/D HH:mm） */

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { enteredAtLabel, groupEntriesByDate, totalsByShop } from "../src/lib/salesEntries.ts";
-import type { SalesEntry } from "../src/lib/types.ts";
+import { enteredAtLabel, groupEntriesByDate, totalsByShop, totalsByStaff } from "../src/lib/salesEntries.ts";
+import type { SalesEntry, StaffSalesEntry } from "../src/lib/types.ts";
 
 const entry = (id: string, shop: string, date: string, amount: number, customers: number | null, created: string): SalesEntry => ({
   id, shop_id: shop, sales_date: date, amount, customer_count: customers, note: null, created_at: created,
@@ -32,4 +32,26 @@ test("店舗ごとの合計・入力した日数・客数（客数が無い店�
 test("入力した日時は日本時間", () => {
   assert.equal(enteredAtLabel("2026-10-05T15:30:00Z"), "10/6 00:30");
   assert.equal(enteredAtLabel("bad"), "");
+});
+
+const staffEntry = (id: string, staff: string, shop: string, date: string, amount: number, customers: number | null): StaffSalesEntry => ({
+  id, staff_id: staff, shop_id: shop, sales_date: date, amount, customer_count: customers, note: null, created_at: `${date}T12:00:00Z`,
+});
+
+test("スタッフごとの合計・出勤日数・客数を金額の多い順に出す", () => {
+  const totals = totalsByStaff([
+    staffEntry("a", "hanako", "nail", "2026-10-03", 12000, 2),
+    staffEntry("b", "yuki", "nail", "2026-10-03", 30000, null),
+    staffEntry("c", "hanako", "nail", "2026-10-03", 8000, 1),
+    staffEntry("d", "hanako", "nail", "2026-10-04", 5000, null),
+  ]);
+  assert.deepEqual(totals, [
+    { staffId: "yuki", shopId: "nail", amount: 30000, days: 1, customers: null },
+    { staffId: "hanako", shopId: "nail", amount: 25000, days: 2, customers: 3 },
+  ]);
+});
+
+test("スタッフの売上も日ごとにまとめられる", () => {
+  const groups = groupEntriesByDate([staffEntry("a", "hanako", "nail", "2026-10-03", 12000, 2), staffEntry("b", "yuki", "nail", "2026-10-04", 3000, null)]);
+  assert.deepEqual(groups.map((g) => [g.date, g.amount]), [["2026-10-04", 3000], ["2026-10-03", 12000]]);
 });

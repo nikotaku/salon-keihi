@@ -71,3 +71,24 @@ export interface Member {
   shop_ids: string[] | null;
   created_at: string;
 }
+
+// 店舗のスタッフ（施術者）。アプリにログインしない人も名前だけで登録できる
+export interface Staff {
+  id: string;
+  shop_id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+// スタッフごとの日別売上（店舗の売上とは別に入れる内訳。店舗の合計・利益には入らない）
+export interface StaffSalesEntry {
+  id: string;
+  shop_id: string;
+  staff_id: string;
+  sales_date: string;
+  amount: number;
+  customer_count: number | null;
+  note: string | null;
+  created_at: string;
+}

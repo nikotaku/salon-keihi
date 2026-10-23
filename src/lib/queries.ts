@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Expense, ExpenseTemplate, MonthlySales, SalesEntry } from "./types";
+import type { Expense, ExpenseTemplate, MonthlySales, SalesEntry, Staff, StaffSalesEntry } from "./types";
 
 export const EXPENSE_COLUMNS =
   "id,shop_id,expense_date,category_id,amount,payment_method,vendor,description,receipt_path,template_id,created_at";
@@ -52,6 +52,33 @@ export function fetchSalesEntries(fromDate: string, toDate: string) {
     supabase
       .from("salon_sales_entries")
       .select(SALES_ENTRY_COLUMNS)
+      .gte("sales_date", fromDate)
+      .lte("sales_date", toDate)
+      .order("sales_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range(from, to),
+  );
+}
+
+// スタッフ一覧（使わないスタッフも含む。並び順どおり）
+export async function fetchStaff() {
+  const { data, error } = await supabase
+    .from("salon_staff")
+    .select("id,shop_id,name,sort_order,is_active")
+    .order("sort_order")
+    .order("created_at");
+  if (error) throw error;
+  return (data || []) as Staff[];
+}
+
+export const STAFF_SALES_COLUMNS = "id,shop_id,staff_id,sales_date,amount,customer_count,note,created_at";
+
+// スタッフごとの日別売上（fromDate / toDate は YYYY-MM-DD）
+export function fetchStaffSalesEntries(fromDate: string, toDate: string) {
+  return fetchAll<StaffSalesEntry>((from, to) =>
+    supabase
+      .from("salon_staff_sales_entries")
+      .select(STAFF_SALES_COLUMNS)
       .gte("sales_date", fromDate)
       .lte("sales_date", toDate)
       .order("sales_date", { ascending: false })
