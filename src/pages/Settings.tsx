@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/input";
 import { useApp } from "@/hooks/useApp";
 import { supabase } from "@/lib/supabase";
-import type { Category, CategoryKind, Member, Role, Shop } from "@/lib/types";
+import { fetchStaff } from "@/lib/queries";
+import type { Category, CategoryKind, Member, Role, Shop, Staff } from "@/lib/types";
 import { cn, describeError } from "@/lib/utils";
 
 function NameField({ value, disabled, onSave }: { value: string; disabled: boolean; onSave: (next: string) => Promise<void> }) {
@@ -96,6 +97,115 @@ function ShopsSection() {
           </div>
         )}
         <p className="pt-1 text-xs text-muted-foreground">店舗名はそのまま書き換えられます。閉店した店舗は「営業中」を外すと、過去の経費は残したまま入力の候補から消えます。</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StaffSection() {
+  const { shops, isOwner, colors } = useApp();
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newNames, setNewNames] = useState<Record<string, string>>({});
+
+  const load = useCallback(async () => {
+    try {
+      setStaff(await fetchStaff());
+    } catch (error) {
+      toast.error(`スタッフを読み込めませんでした: ${describeError(error)}`);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const update = async (id: string, patch: Partial<Staff>) => {
+    const { error } = await supabase.from("salon_staff").update(patch).eq("id", id);
+    if (error) toast.error(`保存できませんでした: ${describeError(error)}`);
+    await load();
+  };
+
+  const move = async (list: Staff[], index: number, delta: number) => {
+    const current = list[index];
+    const target = list[index + delta];
+    if (!target) return;
+    await Promise.all([
+      supabase.from("salon_staff").update({ sort_order: target.sort_order }).eq("id", current.id),
+      supabase.from("salon_staff").update({ sort_order: current.sort_order === target.sort_order ? current.sort_order + delta : current.sort_order }).eq("id", target.id),
+    ]);
+    await load();
+  };
+
+  const add = async (shopId: string) => {
+    const name = (newNames[shopId] ?? "").trim();
+    if (!name) return;
+    const sortOrder = Math.max(0, ...staff.filter((s) => s.shop_id === shopId).map((s) => s.sort_order)) + 1;
+    const { error } = await supabase.from("salon_staff").insert({ shop_id: shopId, name, sort_order: sortOrder });
+    if (error) return toast.error(`追加できませんでした: ${describeError(error)}`);
+    setNewNames((prev) => ({ ...prev, [shopId]: "" }));
+    await load();
+  };
+
+  const visibleShops = shops.filter((shop) => shop.is_active || staff.some((s) => s.shop_id === shop.id));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>スタッフ（個人の売上用）</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <Loader2 className="animate-spin text-primary" />
+        ) : (
+          visibleShops.map((shop) => {
+            const list = staff.filter((s) => s.shop_id === shop.id);
+            return (
+              <div key={shop.id}>
+                <p className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: colors[shop.id] }} />
+                  {shop.name}
+                </p>
+                <div className="space-y-2">
+                  {!list.length && <p className="text-xs text-muted-foreground">まだ登録されていません</p>}
+                  {list.map((person, index) => (
+                    <div key={person.id} className={cn("flex items-center gap-2", !person.is_active && "opacity-60")}>
+                      <NameField value={person.name} disabled={!isOwner} onSave={(name) => update(person.id, { name })} />
+                      {isOwner && (
+                        <>
+                          <button type="button" onClick={() => void move(list, index, -1)} disabled={index === 0} className="rounded p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30" aria-label="上へ">
+                            <ArrowUp size={16} />
+                          </button>
+                          <button type="button" onClick={() => void move(list, index, 1)} disabled={index === list.length - 1} className="rounded p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30" aria-label="下へ">
+                            <ArrowDown size={16} />
+                          </button>
+                          <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                            <input type="checkbox" checked={person.is_active} onChange={(e) => void update(person.id, { is_active: e.target.checked })} />
+                            在籍
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  {isOwner && shop.is_active && (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="スタッフ名を追加"
+                        value={newNames[shop.id] ?? ""}
+                        onChange={(e) => setNewNames((prev) => ({ ...prev, [shop.id]: e.target.value }))}
+                        onKeyDown={(e) => e.key === "Enter" && void add(shop.id)}
+                        className="h-10"
+                      />
+                      <Button variant="outline" onClick={() => void add(shop.id)} disabled={!(newNames[shop.id] ?? "").trim()}><Plus /> 追加</Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+        <p className="text-xs text-muted-foreground">売上画面の「個人の売上」で選べるスタッフです。アプリにログインしない人も名前だけで登録できます。辞めた人は「在籍」を外すと、過去の売上は残したまま候補から消えます。</p>
       </CardContent>
     </Card>
   );
@@ -387,6 +497,7 @@ export default function Settings() {
           </CardContent>
         </Card>
         <ShopsSection />
+        <StaffSection />
         <CategoriesSection />
         {isOwner && <MembersSection />}
       </div>
