@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Copy, Download, Loader2, Plus, Undo2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, Camera, CheckCircle2, Copy, Download, FileText, Image as ImageIcon, Loader2, Plus, Undo2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout";
 import { MonthSwitcher } from "@/components/MonthSwitcher";
@@ -12,6 +12,7 @@ import { downloadCsv, toCsv } from "@/lib/csv";
 import { formatDay, monthLabel, parseAmount, shiftMonth, yen } from "@/lib/format";
 import {
   copyForNextMonth,
+  MAX_PAYMENT_IMAGES,
   PAYMENT_KIND_LABELS,
   PAYMENT_KINDS,
   PAYMENT_STATUS_LABELS,
@@ -22,6 +23,7 @@ import {
   type PaymentStatus,
 } from "@/lib/payments";
 import { fetchPayments } from "@/lib/queries";
+import { moveReceipt, receiptUrl, removeReceipt, uploadReceipt } from "@/lib/receipt";
 import { COMMON_KEY, COMMON_LABEL, shopKey } from "@/lib/summary";
 import { supabase } from "@/lib/supabase";
 import type { Payment, PaymentKind } from "@/lib/types";
@@ -36,6 +38,101 @@ interface Draft {
   dueDate: string;
   paidDate: string;
   note: string;
+  // 写真：残す登録済みのもの・消すもの・新しく足すもの
+  keptImages: string[];
+  removedImages: string[];
+  newFiles: File[];
+}
+
+const isPdf = (name: string) => /\.pdf$/i.test(name);
+
+/** 写真・画像の欄：登録済みはサムネイル（押すと大きく開く）、新しく選んだものはプレビュー */
+function PhotoField({ draft, onChange }: { draft: Draft; onChange: (patch: Partial<Draft>) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const previews = useMemo(() => draft.newFiles.map((file) => (file.type.startsWith("image/") ? URL.createObjectURL(file) : null)), [draft.newFiles]);
+
+  useEffect(() => () => previews.forEach((url) => url && URL.revokeObjectURL(url)), [previews]);
+
+  useEffect(() => {
+    let active = true;
+    // 読めなかったもの（空文字）は取り直さない
+    const missing = draft.keptImages.filter((path) => !(path in urls));
+    if (!missing.length) return;
+    Promise.all(missing.map(async (path) => [path, await receiptUrl(path).catch(() => "")] as const)).then((pairs) => {
+      if (active) setUrls((prev) => ({ ...prev, ...Object.fromEntries(pairs) }));
+    });
+    return () => {
+      active = false;
+    };
+  }, [draft.keptImages, urls]);
+
+  const count = draft.keptImages.length + draft.newFiles.length;
+  const tile = "relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border bg-muted";
+  const removeButton = (onClick: () => void) => (
+    <button type="button" onClick={onClick} className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white" aria-label="この写真を外す">
+      <X size={14} />
+    </button>
+  );
+
+  return (
+    <div>
+      <Label>写真・画像（請求書・払込票など、{MAX_PAYMENT_IMAGES}枚まで）</Label>
+      <div className="flex flex-wrap gap-2">
+        {draft.keptImages.map((path) => (
+          <div key={path} className={tile}>
+            <a href={urls[path] || undefined} target="_blank" rel="noreferrer" className="flex h-full w-full items-center justify-center">
+              {isPdf(path) ? (
+                <FileText className="text-muted-foreground" />
+              ) : urls[path] ? (
+                <img src={urls[path]} alt="登録済みの写真" className="h-full w-full object-cover" />
+              ) : (
+                <Loader2 className="animate-spin text-muted-foreground" size={16} />
+              )}
+            </a>
+            {removeButton(() => onChange({ keptImages: draft.keptImages.filter((p) => p !== path), removedImages: [...draft.removedImages, path] }))}
+          </div>
+        ))}
+        {draft.newFiles.map((file, index) => (
+          <div key={`${file.name}-${index}`} className={tile}>
+            <div className="flex h-full w-full items-center justify-center">
+              {previews[index] ? <img src={previews[index]!} alt={file.name} className="h-full w-full object-cover" /> : <FileText className="text-muted-foreground" />}
+            </div>
+            {removeButton(() => onChange({ newFiles: draft.newFiles.filter((_, i) => i !== index) }))}
+          </div>
+        ))}
+        {count < MAX_PAYMENT_IMAGES && (
+          <button
+            type="button"
+            onClick={() => input.current?.click()}
+            className="flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-xs text-muted-foreground hover:bg-muted"
+          >
+            <Camera size={20} />
+            追加
+          </button>
+        )}
+      </div>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*,application/pdf"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const picked = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          const room = MAX_PAYMENT_IMAGES - count;
+          if (picked.length > room) toast.error(`写真は${MAX_PAYMENT_IMAGES}枚までです（${room}枚だけ追加しました）`);
+          if (picked.some((f) => f.size > 10 * 1024 * 1024 && !f.type.startsWith("image/"))) {
+            toast.error("10MBを超えるファイルは付けられません");
+            return;
+          }
+          onChange({ newFiles: [...draft.newFiles, ...picked.slice(0, room)] });
+        }}
+      />
+      <p className="mt-1 text-xs text-muted-foreground">スマホならその場で撮影もできます。写真は保存したときに上がります。</p>
+    </div>
+  );
 }
 
 type Filter = "all" | "unpaid" | "paid";
@@ -89,7 +186,19 @@ export default function Payments() {
 
   const defaultDue = `${month}-27`;
   const openNew = () =>
-    setDraft({ id: null, payee: "", shop: shopOptions[0]?.value ?? COMMON_KEY, amount: "", method: "slip", dueDate: defaultDue, paidDate: "", note: "" });
+    setDraft({
+      id: null,
+      payee: "",
+      shop: shopOptions[0]?.value ?? COMMON_KEY,
+      amount: "",
+      method: "slip",
+      dueDate: defaultDue,
+      paidDate: "",
+      note: "",
+      keptImages: [],
+      removedImages: [],
+      newFiles: [],
+    });
 
   const openEdit = (row: Payment) =>
     setDraft({
@@ -101,6 +210,9 @@ export default function Payments() {
       dueDate: row.due_date ?? "",
       paidDate: row.paid_date ?? "",
       note: row.note ?? "",
+      keptImages: row.image_paths ?? [],
+      removedImages: [],
+      newFiles: [],
     });
 
   const save = async () => {
@@ -108,9 +220,11 @@ export default function Payments() {
     const amount = parseAmount(draft.amount);
     if (!draft.payee.trim()) return toast.error("支払先を入れてください");
     if (amount === null) return toast.error("金額を入れてください");
+    const shopId = draft.shop === COMMON_KEY ? null : draft.shop;
+    const original = draft.id ? rows.find((r) => r.id === draft.id) : undefined;
     const values = {
       month: `${month}-01`,
-      shop_id: draft.shop === COMMON_KEY ? null : draft.shop,
+      shop_id: shopId,
       payee: draft.payee.trim(),
       amount,
       method: draft.method,
@@ -119,11 +233,24 @@ export default function Payments() {
       note: draft.note.trim() || null,
     };
     setSaving(true);
-    const { error } = draft.id
-      ? await supabase.from("salon_payments").update(values).eq("id", draft.id)
-      : await supabase.from("salon_payments").insert({ ...values, sort_order: Math.max(0, ...rows.map((r) => r.sort_order)) + 1 });
+    const uploaded: string[] = [];
+    try {
+      // 店舗を付け替えたら、残す写真も新しい店舗のフォルダへ移す（見られる権限が店舗単位のため）
+      let kept = draft.keptImages;
+      if (original && original.shop_id !== shopId) kept = await Promise.all(kept.map((path) => moveReceipt(path, shopId, values.month)));
+      for (const file of draft.newFiles) uploaded.push(await uploadReceipt(shopId, values.month, file));
+      const row = { ...values, image_paths: [...kept, ...uploaded] };
+      const { error } = draft.id
+        ? await supabase.from("salon_payments").update(row).eq("id", draft.id)
+        : await supabase.from("salon_payments").insert({ ...row, sort_order: Math.max(0, ...rows.map((r) => r.sort_order)) + 1 });
+      if (error) throw error;
+      await Promise.all(draft.removedImages.map((path) => removeReceipt(path)));
+    } catch (error) {
+      await Promise.all(uploaded.map((path) => removeReceipt(path)));
+      setSaving(false);
+      return toast.error(`保存できませんでした: ${describeError(error)}`);
+    }
     setSaving(false);
-    if (error) return toast.error(`保存できませんでした: ${describeError(error)}`);
     toast.success(`${values.payee}を${draft.id ? "直しました" : "追加しました"}`);
     setDraft(null);
     void load();
@@ -132,9 +259,11 @@ export default function Payments() {
   const remove = async () => {
     if (!draft?.id || !window.confirm(`${draft.payee}を支払い管理表から消しますか？`)) return;
     setSaving(true);
+    const original = rows.find((r) => r.id === draft.id);
     const { error } = await supabase.from("salon_payments").delete().eq("id", draft.id);
     setSaving(false);
     if (error) return toast.error(`消せませんでした: ${describeError(error)}`);
+    await Promise.all([...(original?.image_paths ?? []), ...draft.removedImages].map((path) => removeReceipt(path)));
     setDraft(null);
     void load();
   };
@@ -182,8 +311,9 @@ export default function Payments() {
       row.paid_date,
       PAYMENT_STATUS_LABELS[paymentStatus(row, today)],
       row.note,
+      row.image_paths?.length ?? 0,
     ]);
-    downloadCsv(`支払い管理_${month}.csv`, toCsv([["店舗", "支払先", "区分", "金額", "期日", "払った日", "状態", "メモ"], ...lines]));
+    downloadCsv(`支払い管理_${month}.csv`, toCsv([["店舗", "支払先", "区分", "金額", "期日", "払った日", "状態", "メモ", "写真の枚数"], ...lines]));
   };
 
   return (
@@ -288,6 +418,11 @@ export default function Payments() {
                       {row.paid_date ? ` ・ 払った日 ${formatDay(row.paid_date)}` : ""}
                       {row.note ? ` ・ ${row.note}` : ""}
                     </span>
+                    {row.image_paths?.length > 0 && (
+                      <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <ImageIcon size={12} /> 写真{row.image_paths.length}枚
+                      </span>
+                    )}
                   </button>
                   <span className="shrink-0 text-sm font-semibold tabular">{yen(row.amount)}</span>
                   <Button
@@ -381,6 +516,7 @@ export default function Payments() {
                 <Label htmlFor="pay-note">メモ</Label>
                 <Input id="pay-note" value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="例: コンビニで支払い、請求書番号など" />
               </div>
+              <PhotoField draft={draft} onChange={(patch) => setDraft({ ...draft, ...patch })} />
               <div className="flex gap-2">
                 <Button type="submit" className="flex-1" disabled={saving}>
                   {saving && <Loader2 className="animate-spin" />}保存

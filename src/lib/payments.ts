@@ -79,7 +79,10 @@ export function shiftDateByMonths(date: string, months: number) {
   return `${year}-${pad(month)}-${pad(Math.min(d, last))}`;
 }
 
-/** 前月の支払いを今月分として写す（金額・区分・支払先はそのまま、期日は1か月後、払った日は空） */
+/** 1件に付けられる写真の枚数 */
+export const MAX_PAYMENT_IMAGES = 5;
+
+/** 前月の支払いを今月分として写す（金額・区分・支払先はそのまま、期日は1か月後、払った日・写真は空） */
 export function copyForNextMonth(rows: Payment[], month: string) {
   return rows.map((row) => ({
     month: `${month}-01`,

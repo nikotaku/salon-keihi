@@ -1,5 +1,6 @@
 -- サロン経費管理：月末の支払い管理表
 -- その月に払うもの（請求書・支払用紙・口座振替・引き落とし）を手で入れ、期日と実際に払った日を記録する。
+-- 請求書などの写真も付けられる（領収書と同じバケット・同じ権限）。
 -- 経費（salon_expenses）とは別の管理表。払った日を入れると「支払済み」、期日を過ぎて未払いなら「期日切れ」と表示する。
 
 create table if not exists public.salon_payments (
@@ -12,6 +13,8 @@ create table if not exists public.salon_payments (
   due_date date,  -- 期日
   paid_date date, -- 実際に払った日（入っていれば支払済み）
   note text check (note is null or char_length(note) <= 500),
+  -- 請求書・払込票などの写真（非公開バケット salon-receipts。パスは「店舗ID/年-月/…」、全店共通は common/…）
+  image_paths text[] not null default '{}' check (cardinality(image_paths) <= 5),
   sort_order integer not null default 0,
   created_by uuid default auth.uid() references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),

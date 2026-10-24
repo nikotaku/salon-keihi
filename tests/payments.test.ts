@@ -6,7 +6,7 @@ import type { Payment } from "../src/lib/types.ts";
 
 const payment = (id: string, patch: Partial<Payment> = {}): Payment => ({
   id, month: "2026-10-01", shop_id: null, payee: id, amount: 10000, method: "slip",
-  due_date: null, paid_date: null, note: null, sort_order: 0, created_at: "2026-10-01T00:00:00Z", ...patch,
+  due_date: null, paid_date: null, note: null, image_paths: [], sort_order: 0, created_at: "2026-10-01T00:00:00Z", ...patch,
 });
 
 test("状態：払った日があれば支払済み、期日を過ぎたら期日切れ、3日以内はもうすぐ", () => {
@@ -49,8 +49,8 @@ test("日付を1か月ずらす（月末は合わせる・年をまたぐ）", (
   assert.equal(shiftDateByMonths("2026-12-31", 2), "2027-02-28");
 });
 
-test("前月から写す：期日は1か月後、払った日は空にする", () => {
-  const [copied] = copyForNextMonth([payment("家賃", { amount: 150000, method: "account_transfer", due_date: "2026-10-27", paid_date: "2026-10-27", note: "A棟" })], "2026-11");
+test("前月から写す：期日は1か月後、払った日・写真は写さない", () => {
+  const [copied] = copyForNextMonth([payment("家賃", { amount: 150000, method: "account_transfer", due_date: "2026-10-27", paid_date: "2026-10-27", note: "A棟", image_paths: ["common/2026-10/a.jpg"] })], "2026-11");
   assert.deepEqual(copied, {
     month: "2026-11-01", shop_id: null, payee: "家賃", amount: 150000, method: "account_transfer",
     due_date: "2026-11-27", paid_date: null, note: "A棟", sort_order: 0,

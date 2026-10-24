@@ -87,7 +87,7 @@ export function fetchStaffSalesEntries(fromDate: string, toDate: string) {
   );
 }
 
-export const PAYMENT_COLUMNS = "id,month,shop_id,payee,amount,method,due_date,paid_date,note,sort_order,created_at";
+export const PAYMENT_COLUMNS = "id,month,shop_id,payee,amount,method,due_date,paid_date,note,image_paths,sort_order,created_at";
 
 // 月末の支払い管理表（month は YYYY-MM）
 export function fetchPayments(month: string) {
