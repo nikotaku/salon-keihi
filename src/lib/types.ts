@@ -92,3 +92,21 @@ export interface StaffSalesEntry {
   note: string | null;
   created_at: string;
 }
+
+// 月末の支払い管理表（支払用紙・口座振替・引き落とし）
+export type PaymentKind = "slip" | "account_transfer" | "auto_debit";
+
+export interface Payment {
+  id: string;
+  month: string;
+  shop_id: string | null;
+  payee: string;
+  amount: number;
+  method: PaymentKind;
+  due_date: string | null;
+  paid_date: string | null;
+  note: string | null;
+  image_paths: string[];
+  sort_order: number;
+  created_at: string;
+}
