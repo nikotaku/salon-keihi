@@ -9,6 +9,7 @@ import Expenses from "@/pages/Expenses";
 import FixedCosts from "@/pages/FixedCosts";
 import Login from "@/pages/Login";
 import Sales from "@/pages/Sales";
+import Payments from "@/pages/Payments";
 import Settings from "@/pages/Settings";
 
 function NoAccess({ email }: { email: string | undefined }) {
@@ -48,6 +49,7 @@ export default function App() {
       <Route path="/expenses" element={<Expenses />} />
       <Route path="/fixed" element={<FixedCosts />} />
       <Route path="/sales" element={<Sales />} />
+      <Route path="/payments" element={<Payments />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

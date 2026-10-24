@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import { JapaneseYen, LayoutDashboard, Plus, ReceiptText, Repeat, Settings } from "lucide-react";
+import { CalendarCheck, JapaneseYen, LayoutDashboard, Plus, ReceiptText, Repeat, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseDialog } from "@/components/ExpenseDialog";
 import { useApp } from "@/hooks/useApp";
@@ -11,6 +11,7 @@ const NAV = [
   { to: "/expenses", label: "経費", icon: ReceiptText },
   { to: "/fixed", label: "固定費", icon: Repeat },
   { to: "/sales", label: "売上", icon: JapaneseYen },
+  { to: "/payments", label: "支払い", icon: CalendarCheck },
   { to: "/settings", label: "設定", icon: Settings },
 ];
 
@@ -68,7 +69,7 @@ export function Layout({ title, actions, children }: { title: string; actions?: 
         <Plus size={20} /> 経費
       </button>
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card safe-bottom md:hidden">
-        <div className="grid grid-cols-5">
+        <div className="grid grid-cols-6">
           {NAV.map((item) => (
             <NavLink
               key={item.to}

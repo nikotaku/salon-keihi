@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Expense, ExpenseTemplate, MonthlySales, SalesEntry, Staff, StaffSalesEntry } from "./types";
+import type { Expense, ExpenseTemplate, MonthlySales, Payment, SalesEntry, Staff, StaffSalesEntry } from "./types";
 
 export const EXPENSE_COLUMNS =
   "id,shop_id,expense_date,category_id,amount,payment_method,vendor,description,receipt_path,template_id,created_at";
@@ -83,6 +83,21 @@ export function fetchStaffSalesEntries(fromDate: string, toDate: string) {
       .lte("sales_date", toDate)
       .order("sales_date", { ascending: false })
       .order("created_at", { ascending: false })
+      .range(from, to),
+  );
+}
+
+export const PAYMENT_COLUMNS = "id,month,shop_id,payee,amount,method,due_date,paid_date,note,sort_order,created_at";
+
+// 月末の支払い管理表（month は YYYY-MM）
+export function fetchPayments(month: string) {
+  return fetchAll<Payment>((from, to) =>
+    supabase
+      .from("salon_payments")
+      .select(PAYMENT_COLUMNS)
+      .eq("month", `${month}-01`)
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .order("created_at")
       .range(from, to),
   );
 }
