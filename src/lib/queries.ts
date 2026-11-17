@@ -44,7 +44,7 @@ export function fetchSales(fromMonth: string, toMonth: string) {
   );
 }
 
-export const SALES_ENTRY_COLUMNS = "id,shop_id,sales_date,amount,customer_count,note,created_at";
+export const SALES_ENTRY_COLUMNS = "id,shop_id,staff_id,sales_date,amount,customer_count,note,created_at";
 
 // 日付ごとの売上（fromDate / toDate は YYYY-MM-DD）
 export function fetchSalesEntries(fromDate: string, toDate: string) {

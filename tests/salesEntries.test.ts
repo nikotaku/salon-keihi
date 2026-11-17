@@ -5,7 +5,7 @@ import { enteredAtLabel, groupEntriesByDate, totalsByShop, totalsByStaff } from 
 import type { SalesEntry, StaffSalesEntry } from "../src/lib/types.ts";
 
 const entry = (id: string, shop: string, date: string, amount: number, customers: number | null, created: string): SalesEntry => ({
-  id, shop_id: shop, sales_date: date, amount, customer_count: customers, note: null, created_at: created,
+  id, shop_id: shop, staff_id: null, sales_date: date, amount, customer_count: customers, note: null, created_at: created,
 });
 
 const entries = [
