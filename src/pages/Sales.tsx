@@ -25,6 +25,7 @@ import { enteredAtLabel, groupEntriesByDate, totalsByShop } from "@/lib/salesEnt
 import { supabase } from "@/lib/supabase";
 import type { MonthlySales, SalesEntry, Staff } from "@/lib/types";
 import { cn, describeError } from "@/lib/utils";
+import { tint, TINT_BORDER, TINT_CARD, TINT_ROW } from "@/lib/summary";
 import { StaffSales } from "@/components/StaffSales";
 
 interface Form {
@@ -232,7 +233,7 @@ function ShopSales() {
             const total = totals.get(shop.id);
             const monthly = historyOf(shop.id, month);
             return (
-              <Card key={shop.id}>
+              <Card key={shop.id} style={{ background: tint(colors[shop.id], TINT_CARD), borderColor: tint(colors[shop.id], TINT_BORDER) }}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ background: colors[shop.id] }} />
@@ -291,7 +292,7 @@ function ShopSales() {
                 </div>
                 <Card className="divide-y overflow-hidden">
                   {group.rows.map((entry) => (
-                    <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
+                    <div key={entry.id} className="flex items-center gap-3 px-4 py-3" style={{ background: tint(colors[entry.shop_id], TINT_ROW) }}>
                       <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: colors[entry.shop_id] }} aria-hidden />
                       <button type="button" onClick={() => edit(entry)} className="min-w-0 flex-1 text-left">
                         <span className="block text-sm font-medium">

@@ -11,18 +11,19 @@ import { downloadCsv, toCsv } from "@/lib/csv";
 import { formatDay, monthEnd, monthStart, PAYMENT_LABELS, yen } from "@/lib/format";
 import { fetchExpenses } from "@/lib/queries";
 import { enteredAtLabel } from "@/lib/salesEntries";
-import { COMMON_KEY, COMMON_LABEL, shopKey } from "@/lib/summary";
+import { COMMON_KEY, COMMON_LABEL, shopKey, tint, TINT_BORDER, TINT_ROW } from "@/lib/summary";
 import type { CategoryKind, Expense } from "@/lib/types";
 import { cn, describeError } from "@/lib/utils";
 
 type ShopFilter = "all" | string;
 type KindFilter = "all" | CategoryKind;
 
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({ active, onClick, children, color }: { active: boolean; onClick: () => void; children: React.ReactNode; color?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      style={color ? { background: tint(color, active ? 0.22 : TINT_ROW), borderColor: active ? color : tint(color, TINT_BORDER) } : undefined}
       className={cn(
         "shrink-0 rounded-full border px-3 py-1.5 text-xs",
         active ? "border-primary bg-accent font-semibold text-accent-foreground" : "bg-card text-muted-foreground",
@@ -113,7 +114,7 @@ export default function Expenses() {
         <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
           <Chip active={shopFilter === "all"} onClick={() => setShopFilter("all")}>全店</Chip>
           {shopKeys.map((key) => (
-            <Chip key={key} active={shopFilter === key} onClick={() => setShopFilter(key)}>
+            <Chip key={key} active={shopFilter === key} onClick={() => setShopFilter(key)} color={colors[key]}>
               <span className="mr-1 inline-block h-2 w-2 rounded-full align-middle" style={{ background: colors[key] }} />
               {key === COMMON_KEY ? COMMON_LABEL : shopName(key)}
             </Chip>
@@ -169,7 +170,8 @@ export default function Expenses() {
                         key={e.id}
                         type="button"
                         onClick={() => openExpense(e)}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/50"
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:brightness-95"
+                        style={{ background: tint(colors[key], TINT_ROW) }}
                       >
                         <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: colors[key] }} aria-hidden />
                         <span className="min-w-0 flex-1">

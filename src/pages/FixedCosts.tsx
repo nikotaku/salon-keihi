@@ -10,7 +10,7 @@ import { Input, Label, Select } from "@/components/ui/input";
 import { useApp } from "@/hooks/useApp";
 import { monthLabel, PAYMENT_LABELS, parseAmount, yen } from "@/lib/format";
 import { fetchPostedTemplateIds, fetchTemplates } from "@/lib/queries";
-import { COMMON_KEY, COMMON_LABEL, shopKey } from "@/lib/summary";
+import { COMMON_KEY, COMMON_LABEL, shopKey, tint, TINT_BORDER, TINT_CARD } from "@/lib/summary";
 import { supabase } from "@/lib/supabase";
 import type { ExpenseTemplate, PaymentMethod } from "@/lib/types";
 import { cn, describeError } from "@/lib/utils";
@@ -191,7 +191,7 @@ export default function FixedCosts() {
           <div className="rounded-xl border border-dashed py-12 text-center text-sm text-muted-foreground">まだ固定費がありません</div>
         ) : (
           groups.map(({ key, rows }) => (
-            <Card key={key}>
+            <Card key={key} style={{ background: tint(colors[key], TINT_CARD), borderColor: tint(colors[key], TINT_BORDER) }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: colors[key] }} />

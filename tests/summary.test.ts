@@ -180,3 +180,10 @@ test("店舗ごとの推移：月ごとに売上・経費・利益を出す", as
     { month: "2026-10", sales: 2000, expenses: 500, profit: 1500 },
   ]);
 });
+
+test("店舗の色を薄い背景色にする", async () => {
+  const { tint } = await import("../src/lib/summary.ts");
+  assert.equal(tint("#2a78d6", 0.1), "rgba(42, 120, 214, 0.1)");
+  assert.equal(tint(undefined, 0.1), undefined);
+  assert.equal(tint("blue", 0.1), undefined);
+});
