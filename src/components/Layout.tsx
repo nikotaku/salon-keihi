@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ExpenseDialog } from "@/components/ExpenseDialog";
 import { useApp } from "@/hooks/useApp";
 import { cn } from "@/lib/utils";
+import { tint } from "@/lib/summary";
 
 const NAV = [
   { to: "/", label: "ホーム", icon: LayoutDashboard, end: true },
@@ -55,6 +56,7 @@ export function Layout({ title, actions, children }: { title: string; actions?: 
               <NavLink
                 key={shop.id}
                 to={`/shops/${shop.id}`}
+                style={({ isActive }) => (isActive ? { background: tint(colors[shop.id], 0.16) } : undefined)}
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm",

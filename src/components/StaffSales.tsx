@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { useApp } from "@/hooks/useApp";
+import { tint, TINT_ROW } from "@/lib/summary";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import { defaultDateFor, formatDay, monthEnd, monthLabel, monthStart, parseAmount, yen } from "@/lib/format";
 import { fetchStaff, fetchStaffSalesEntries } from "@/lib/queries";
@@ -273,7 +274,7 @@ export function StaffSales() {
                   const rows = totals.filter((t) => t.shopId === shop.id);
                   const shopTotal = rows.reduce((sum, row) => sum + row.amount, 0);
                   return (
-                    <div key={shop.id}>
+                    <div key={shop.id} className="rounded-lg p-2" style={{ background: tint(colors[shop.id], TINT_ROW) }}>
                       <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                         <span className="flex items-center gap-2 font-semibold">
                           <span className="h-2.5 w-2.5 rounded-full" style={{ background: colors[shop.id] }} />
@@ -328,7 +329,7 @@ export function StaffSales() {
               </div>
               <Card className="divide-y overflow-hidden">
                 {group.rows.map((entry) => (
-                  <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
+                  <div key={entry.id} className="flex items-center gap-3 px-4 py-3" style={{ background: tint(colors[entry.shop_id], TINT_ROW) }}>
                     <span className="h-8 w-1 shrink-0 rounded-full" style={{ background: colors[entry.shop_id] }} aria-hidden />
                     <button type="button" onClick={() => edit(entry)} className="min-w-0 flex-1 text-left">
                       <span className="block text-sm font-medium">{staffName(entry.staff_id)}</span>

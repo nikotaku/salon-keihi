@@ -220,3 +220,14 @@ export function shopTrend(input: { shopId: string; months: string[]; expenses: E
     return { month, sales, expenses, profit: sales === null ? null : sales - expenses };
   });
 }
+
+// 店舗の色を薄くした背景色（#rrggbb → rgba）。店舗ごとに背景を色分けするのに使う
+export function tint(hex: string | undefined, alpha: number) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex ?? "");
+  if (!m) return undefined;
+  return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
+}
+// 背景・枠線の濃さ（一覧の1件・カード・枠）
+export const TINT_ROW = 0.08;
+export const TINT_CARD = 0.11;
+export const TINT_BORDER = 0.4;

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useApp } from "@/hooks/useApp";
 import { monthEnd, monthLabel, monthStart, percent, recentMonths, shiftMonth, yen } from "@/lib/format";
 import { fetchExpenses, fetchPostedTemplateIds, fetchSales, fetchTemplates } from "@/lib/queries";
-import { changeRatio, COMMON_KEY, COMMON_LABEL, monthlyTrend, summarizeMonth } from "@/lib/summary";
+import { changeRatio, COMMON_KEY, COMMON_LABEL, monthlyTrend, summarizeMonth, tint, TINT_BORDER, TINT_CARD } from "@/lib/summary";
 import type { Expense, ExpenseTemplate, MonthlySales } from "@/lib/types";
 import { cn, describeError } from "@/lib/utils";
 
@@ -151,7 +151,7 @@ export default function Dashboard() {
           <div className="grid gap-3 md:grid-cols-3">
             {summary.shops.map((row) => (
               <Link key={row.key} to={`/shops/${row.key}`} className="block rounded-xl transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary">
-              <Card className="h-full">
+              <Card className="h-full" style={{ background: tint(colors[row.key], TINT_CARD), borderColor: tint(colors[row.key], TINT_BORDER) }}>
                 <CardContent>
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: colors[row.key] }} />

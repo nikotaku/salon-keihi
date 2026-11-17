@@ -24,7 +24,7 @@ import {
 } from "@/lib/payments";
 import { fetchPayments } from "@/lib/queries";
 import { moveReceipt, receiptUrl, removeReceipt, uploadReceipt } from "@/lib/receipt";
-import { COMMON_KEY, COMMON_LABEL, shopKey } from "@/lib/summary";
+import { COMMON_KEY, COMMON_LABEL, shopKey, tint, TINT_ROW } from "@/lib/summary";
 import { supabase } from "@/lib/supabase";
 import type { Payment, PaymentKind } from "@/lib/types";
 import { cn, describeError } from "@/lib/utils";
@@ -403,7 +403,7 @@ export default function Payments() {
             {visible.map((row) => {
               const status = paymentStatus(row, today);
               return (
-                <div key={row.id} className={cn("flex items-center gap-3 px-4 py-3", row.paid_date && "bg-muted/30")}>
+                <div key={row.id} className={cn("flex items-center gap-3 px-4 py-3", row.paid_date && "opacity-70")} style={{ background: tint(colors[shopKey(row.shop_id)], TINT_ROW) }}>
                   <span className="h-10 w-1 shrink-0 rounded-full" style={{ background: colors[shopKey(row.shop_id)] }} aria-hidden />
                   <button type="button" onClick={() => openEdit(row)} className="min-w-0 flex-1 text-left">
                     <span className="flex items-center gap-2">

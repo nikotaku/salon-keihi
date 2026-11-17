@@ -12,7 +12,7 @@ import { formatDay, monthEnd, monthLabel, monthStart, PAYMENT_LABELS, percent, r
 import { PAYMENT_KIND_LABELS, PAYMENT_STATUS_LABELS, paymentStatus, sortPayments, summarizePayments, todayInTokyo } from "@/lib/payments";
 import { fetchExpenses, fetchPayments, fetchSales, fetchSalesEntries, fetchStaff, fetchStaffSalesEntries } from "@/lib/queries";
 import { totalsByStaff } from "@/lib/salesEntries";
-import { changeRatio, shopTrend, summarizeShopMonth } from "@/lib/summary";
+import { changeRatio, shopTrend, summarizeShopMonth, tint, TINT_BORDER, TINT_CARD, TINT_ROW } from "@/lib/summary";
 import type { Expense, MonthlySales, Payment, SalesEntry, Staff, StaffSalesEntry } from "@/lib/types";
 import { cn, describeError } from "@/lib/utils";
 
@@ -133,6 +133,7 @@ export default function ShopPage() {
               <NavLink
                 key={s.id}
                 to={`/shops/${s.id}`}
+                style={({ isActive }) => ({ background: tint(colors[s.id], isActive ? 0.22 : TINT_ROW), borderColor: isActive ? colors[s.id] : tint(colors[s.id], TINT_BORDER) })}
                 className={({ isActive }) =>
                   cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-xs",
@@ -161,7 +162,7 @@ export default function ShopPage() {
               </Link>
             )}
 
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden" style={{ background: tint(color, TINT_CARD), borderColor: tint(color, TINT_BORDER) }}>
               <div className="h-1" style={{ background: color }} aria-hidden />
               <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-[1.4fr_1fr_1fr_1fr] sm:items-end">
                 <div className="col-span-2 sm:col-span-1">
