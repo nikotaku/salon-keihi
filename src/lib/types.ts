@@ -57,6 +57,7 @@ export interface MonthlySales {
 export interface SalesEntry {
   id: string;
   shop_id: string;
+  staff_id: string | null; // 担当（だれの売上か）。任意
   sales_date: string;
   amount: number;
   customer_count: number | null;
