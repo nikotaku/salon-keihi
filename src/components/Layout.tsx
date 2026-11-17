@@ -9,9 +9,9 @@ import { tint } from "@/lib/summary";
 
 const NAV = [
   { to: "/", label: "ホーム", icon: LayoutDashboard, end: true },
+  { to: "/sales", label: "売上", icon: JapaneseYen },
   { to: "/expenses", label: "経費", icon: ReceiptText },
   { to: "/fixed", label: "固定費", icon: Repeat },
-  { to: "/sales", label: "売上", icon: JapaneseYen },
   { to: "/payments", label: "支払い", icon: CalendarCheck },
   { to: "/settings", label: "設定", icon: Settings },
 ];
