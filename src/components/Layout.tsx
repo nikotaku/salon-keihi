@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { CalendarCheck, JapaneseYen, LayoutDashboard, Plus, ReceiptText, Repeat, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseDialog } from "@/components/ExpenseDialog";
@@ -18,6 +18,7 @@ const NAV = [
 
 export function Layout({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
   const { openExpense, shops, usableShops, isOwner, colors } = useApp();
+  const navigate = useNavigate();
   const shopLinks = isOwner ? shops.filter((s) => s.is_active) : usableShops;
   return (
     <div className="min-h-dvh">
@@ -82,14 +83,14 @@ export function Layout({ title, actions, children }: { title: string; actions?: 
         <main className="mx-auto max-w-5xl px-4 pb-32 pt-4 md:pb-10">{children}</main>
       </div>
 
-      {/* スマホ: 下のタブと、経費入力のボタン */}
+      {/* スマホ: 下のタブと、売上入力のボタン（売上の画面を開いて金額の欄に入る） */}
       <button
         type="button"
-        onClick={() => openExpense()}
+        onClick={() => navigate(`/sales?new=${Date.now()}`)}
         className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-lg md:hidden"
-        aria-label="経費を入力"
+        aria-label="売上を入力"
       >
-        <Plus size={20} /> 経費
+        <Plus size={20} /> 売上
       </button>
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-card safe-bottom md:hidden">
         <div className="grid grid-cols-6">
