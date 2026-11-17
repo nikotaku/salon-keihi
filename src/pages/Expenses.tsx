@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Download, Loader2, Paperclip, Repeat, Search } from "lucide-react";
+import { Download, Loader2, Paperclip, Plus, Repeat, Search } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { MonthSwitcher } from "@/components/MonthSwitcher";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,9 @@ export default function Expenses() {
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="科目・支払先・メモで検索" className="h-9 pl-8 text-sm" />
           </div>
+          <Button size="sm" onClick={() => openExpense(null, shopFilter !== "all" && shopFilter !== COMMON_KEY ? shopFilter : undefined)}>
+            <Plus /> 経費を入力
+          </Button>
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={!visible.length}>
             <Download /> CSV
           </Button>
