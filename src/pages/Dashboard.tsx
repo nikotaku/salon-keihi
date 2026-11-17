@@ -150,11 +150,13 @@ export default function Dashboard() {
 
           <div className="grid gap-3 md:grid-cols-3">
             {summary.shops.map((row) => (
-              <Card key={row.key}>
+              <Link key={row.key} to={`/shops/${row.key}`} className="block rounded-xl transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-primary">
+              <Card className="h-full">
                 <CardContent>
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: colors[row.key] }} />
-                    <p className="truncate text-sm font-semibold">{row.name}</p>
+                    <p className="flex-1 truncate text-sm font-semibold">{row.name}</p>
+                    <span className="shrink-0 text-xs text-primary">店舗ページ →</span>
                   </div>
                   <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
                     <div>
@@ -178,6 +180,7 @@ export default function Dashboard() {
                   </p>
                 </CardContent>
               </Card>
+              </Link>
             ))}
           </div>
           {summary.common > 0 && (

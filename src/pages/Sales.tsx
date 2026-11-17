@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Download, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -47,8 +48,11 @@ function ShopSales() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const months = useMemo(() => recentMonths(month, 6), [month]);
+  const [searchParams] = useSearchParams();
+  // 店舗ページの「売上を入力」から来たときは、その店舗を最初から選んでおく
+  const presetShop = usableShops.some((s) => s.id === searchParams.get("shop")) ? searchParams.get("shop")! : undefined;
   const emptyForm = (shopId = usableShops[0]?.id ?? ""): Form => ({ date: defaultDateFor(month), shopId, amount: "", customers: "", note: "" });
-  const [form, setForm] = useState<Form>(() => emptyForm());
+  const [form, setForm] = useState<Form>(() => emptyForm(presetShop));
 
   useEffect(() => {
     setForm((prev) => ({ ...emptyForm(prev.shopId || usableShops[0]?.id) }));
@@ -289,7 +293,10 @@ type SalesTab = "shop" | "staff";
 const TAB_KEY = "salon-keihi:sales-tab";
 
 export default function Sales() {
+  const [searchParams] = useSearchParams();
   const [tab, setTabState] = useState<SalesTab>(() => {
+    if (searchParams.get("tab") === "staff") return "staff";
+    if (searchParams.get("shop")) return "shop";
     try {
       return localStorage.getItem(TAB_KEY) === "staff" ? "staff" : "shop";
     } catch {

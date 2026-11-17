@@ -144,3 +144,79 @@ export function shopColors(shops: Shop[]) {
   });
   return colors;
 }
+
+// ---- 店舗ごとのページ ----
+
+export interface ShopMonth {
+  sales: number | null; // 売上未入力は null
+  customers: number | null;
+  expenses: number;
+  profit: number | null;
+  margin: number | null;
+  perCustomer: number | null; // 客単価
+  byKind: Record<CategoryKind, number>;
+  byCategory: MonthSummary["byCategory"];
+}
+
+// 1店舗・1か月の売上・経費・利益と、科目別の経費
+export function summarizeShopMonth(input: {
+  shopId: string;
+  month: string;
+  categories: Category[];
+  expenses: Expense[];
+  sales: MonthlySales[];
+}): ShopMonth {
+  const expenses = input.expenses.filter((e) => e.shop_id === input.shopId && inMonth(e.expense_date, input.month));
+  const row = input.sales.find((s) => s.shop_id === input.shopId && salesMonth(s) === input.month);
+  const spent = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const salesAmount = row ? row.amount : null;
+  const profit = salesAmount === null ? null : salesAmount - spent;
+  const customers = row?.customer_count ?? null;
+
+  const categoryById = new Map(input.categories.map((c) => [c.id, c]));
+  const byKind: Record<CategoryKind, number> = { fixed: 0, variable: 0 };
+  const byCategoryMap = new Map<string, number>();
+  for (const e of expenses) {
+    const kind = categoryById.get(e.category_id)?.kind;
+    if (kind) byKind[kind] += e.amount;
+    byCategoryMap.set(e.category_id, (byCategoryMap.get(e.category_id) ?? 0) + e.amount);
+  }
+  const byCategory = [...byCategoryMap.entries()]
+    .map(([categoryId, amount]) => ({
+      categoryId,
+      amount,
+      name: categoryById.get(categoryId)?.name ?? "（削除された科目）",
+      kind: categoryById.get(categoryId)?.kind ?? null,
+    }))
+    .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, "ja"));
+
+  return {
+    sales: salesAmount,
+    customers,
+    expenses: spent,
+    profit,
+    margin: salesAmount && profit !== null ? profit / salesAmount : null,
+    perCustomer: salesAmount !== null && customers ? salesAmount / customers : null,
+    byKind,
+    byCategory,
+  };
+}
+
+export interface ShopTrendPoint {
+  month: string;
+  sales: number | null;
+  expenses: number;
+  profit: number | null;
+}
+
+// 1店舗の月ごとの売上・経費・利益（売上未入力の月は売上・利益が null）
+export function shopTrend(input: { shopId: string; months: string[]; expenses: Expense[]; sales: MonthlySales[] }): ShopTrendPoint[] {
+  return input.months.map((month) => {
+    const expenses = input.expenses
+      .filter((e) => e.shop_id === input.shopId && inMonth(e.expense_date, month))
+      .reduce((sum, e) => sum + e.amount, 0);
+    const row = input.sales.find((s) => s.shop_id === input.shopId && salesMonth(s) === month);
+    const sales = row ? row.amount : null;
+    return { month, sales, expenses, profit: sales === null ? null : sales - expenses };
+  });
+}

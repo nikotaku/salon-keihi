@@ -103,7 +103,9 @@ export function ExpenseDialog() {
         receiptUrl(editing.receipt_path).then(setExistingUrl).catch(() => setExistingUrl(null));
       }
     } else {
-      reset();
+      // 店舗ページから開いたときは、その店舗を最初から選んでおく
+      const preset = expenseDialog.shop && shopOptions.some((o) => o.value === expenseDialog.shop) ? expenseDialog.shop : undefined;
+      reset(preset);
     }
     // 開いたときだけ初期化する
     // eslint-disable-next-line react-hooks/exhaustive-deps

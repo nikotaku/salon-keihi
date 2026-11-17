@@ -11,6 +11,7 @@ import Login from "@/pages/Login";
 import Sales from "@/pages/Sales";
 import Payments from "@/pages/Payments";
 import Settings from "@/pages/Settings";
+import ShopPage from "@/pages/Shop";
 
 function NoAccess({ email }: { email: string | undefined }) {
   return (
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/sales" element={<Sales />} />
       <Route path="/payments" element={<Payments />} />
       <Route path="/settings" element={<Settings />} />
+      <Route path="/shops/:shopId" element={<ShopPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -16,7 +16,8 @@ const NAV = [
 ];
 
 export function Layout({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
-  const { openExpense } = useApp();
+  const { openExpense, shops, usableShops, isOwner, colors } = useApp();
+  const shopLinks = isOwner ? shops.filter((s) => s.is_active) : usableShops;
   return (
     <div className="min-h-dvh">
       {/* PC: 左のメニュー */}
@@ -47,6 +48,26 @@ export function Layout({ title, actions, children }: { title: string; actions?: 
             </NavLink>
           ))}
         </nav>
+        {shopLinks.length > 0 && (
+          <nav className="mt-5 space-y-0.5 px-3" aria-label="店舗ごとのページ">
+            <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-muted-foreground">店舗ごと</p>
+            {shopLinks.map((shop) => (
+              <NavLink
+                key={shop.id}
+                to={`/shops/${shop.id}`}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm",
+                    isActive ? "bg-accent font-semibold text-accent-foreground" : "text-muted-foreground hover:bg-muted",
+                  )
+                }
+              >
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: colors[shop.id] }} />
+                <span className="truncate">{shop.name}</span>
+              </NavLink>
+            ))}
+          </nav>
+        )}
       </aside>
 
       <div className="md:pl-56">

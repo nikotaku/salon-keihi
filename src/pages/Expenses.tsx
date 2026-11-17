@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Download, Loader2, Paperclip, Repeat, Search } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { MonthSwitcher } from "@/components/MonthSwitcher";
@@ -37,7 +38,9 @@ export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [shopFilter, setShopFilter] = useState<ShopFilter>("all");
+  const [searchParams] = useSearchParams();
+  // 店舗ページの「すべて見る」から来たときは、その店舗で絞り込んでおく
+  const [shopFilter, setShopFilter] = useState<ShopFilter>(() => searchParams.get("shop") || "all");
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [query, setQuery] = useState("");
 

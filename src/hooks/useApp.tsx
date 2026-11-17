@@ -29,8 +29,9 @@ interface AppState {
   // 経費を保存・削除したら増える。各画面はこれを見て読み直す
   dataVersion: number;
   bumpData: () => void;
-  expenseDialog: { open: boolean; expense: Expense | null };
-  openExpense: (expense?: Expense | null) => void;
+  // shop は新しく入れるときに最初から選んでおく店舗（店舗ページから開いたとき）
+  expenseDialog: { open: boolean; expense: Expense | null; shop?: string };
+  openExpense: (expense?: Expense | null, shop?: string) => void;
   closeExpense: () => void;
 }
 
@@ -57,7 +58,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [month, setMonthState] = useState(initialMonth);
   const [dataVersion, setDataVersion] = useState(0);
-  const [expenseDialog, setExpenseDialog] = useState<{ open: boolean; expense: Expense | null }>({ open: false, expense: null });
+  const [expenseDialog, setExpenseDialog] = useState<{ open: boolean; expense: Expense | null; shop?: string }>({ open: false, expense: null });
 
   useEffect(() => {
     // メールのログインリンク（?token_hash=…&type=…）で開かれたら、その場でログインする
@@ -142,7 +143,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dataVersion,
       bumpData: () => setDataVersion((v) => v + 1),
       expenseDialog,
-      openExpense: (expense) => setExpenseDialog({ open: true, expense: expense ?? null }),
+      openExpense: (expense, shop) => setExpenseDialog({ open: true, expense: expense ?? null, shop }),
       closeExpense: () => setExpenseDialog((prev) => ({ ...prev, open: false })),
     };
   }, [session, authLoading, member, memberLoading, shops, categories, reloadMaster, month, setMonth, dataVersion, expenseDialog]);

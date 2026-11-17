@@ -136,3 +136,47 @@ test("店舗の色は並び順で決まり、全店共通は別の色", () => {
   assert.equal(colors.lash, "#1baf7a");
   assert.equal(colors[COMMON_KEY], "#eda100");
 });
+
+test("店舗ごと：その店舗の経費だけを数え、全店共通やほかの店舗は入れない", async () => {
+  const { summarizeShopMonth } = await import("../src/lib/summary.ts");
+  const expenses = [
+    expense("nail", "2026-10-03", "rent", 100000),
+    expense("nail", "2026-10-20", "material", 20000),
+    expense("lash", "2026-10-05", "material", 9999),
+    expense(null, "2026-10-05", "rent", 50000),
+    expense("nail", "2026-09-30", "material", 7777),
+  ];
+  const sales = [{ ...sale("nail", "2026-10", 400000), customer_count: 80 }, sale("lash", "2026-10", 1)];
+  const s = summarizeShopMonth({ shopId: "nail", month: "2026-10", categories, expenses, sales });
+  assert.equal(s.expenses, 120000);
+  assert.equal(s.sales, 400000);
+  assert.equal(s.profit, 280000);
+  assert.equal(s.margin, 0.7);
+  assert.equal(s.perCustomer, 5000);
+  assert.deepEqual(s.byKind, { fixed: 100000, variable: 20000 });
+  assert.deepEqual(s.byCategory.map((c) => [c.name, c.amount]), [["家賃", 100000], ["材料費", 20000]]);
+});
+
+test("店舗ごと：売上が未入力の月は売上・利益・客単価が空", async () => {
+  const { summarizeShopMonth } = await import("../src/lib/summary.ts");
+  const s = summarizeShopMonth({ shopId: "kokubun", month: "2026-10", categories, expenses: [expense("kokubun", "2026-10-01", "rent", 1000)], sales: [] });
+  assert.equal(s.sales, null);
+  assert.equal(s.profit, null);
+  assert.equal(s.margin, null);
+  assert.equal(s.perCustomer, null);
+  assert.equal(s.expenses, 1000);
+});
+
+test("店舗ごとの推移：月ごとに売上・経費・利益を出す", async () => {
+  const { shopTrend } = await import("../src/lib/summary.ts");
+  const t = shopTrend({
+    shopId: "nail",
+    months: ["2026-09", "2026-10"],
+    expenses: [expense("nail", "2026-09-10", "rent", 300), expense("nail", "2026-10-10", "rent", 500), expense("lash", "2026-10-10", "rent", 99)],
+    sales: [sale("nail", "2026-10", 2000)],
+  });
+  assert.deepEqual(t, [
+    { month: "2026-09", sales: null, expenses: 300, profit: null },
+    { month: "2026-10", sales: 2000, expenses: 500, profit: 1500 },
+  ]);
+});
