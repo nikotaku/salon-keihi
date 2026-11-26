@@ -9,22 +9,23 @@ import { useApp } from "@/hooks/useApp";
 import { tint, TINT_ROW } from "@/lib/summary";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import { defaultDateFor, formatDay, monthEnd, monthLabel, monthStart, parseAmount, yen } from "@/lib/format";
-import { fetchStaff, fetchStaffSalesEntries } from "@/lib/queries";
+import { fetchSalesTypes, fetchStaff, fetchStaffSalesEntries } from "@/lib/queries";
 import { enteredAtLabel, groupEntriesByDate, totalsByStaff } from "@/lib/salesEntries";
 import { supabase } from "@/lib/supabase";
-import type { Staff, StaffSalesEntry } from "@/lib/types";
+import type { SalesType, Staff, StaffSalesEntry } from "@/lib/types";
 import { describeError } from "@/lib/utils";
 
 interface Form {
   date: string;
   shopId: string;
   staffId: string;
+  typeId: string;
   amount: string;
   customers: string;
   note: string;
 }
 
-const selectClass = "flex h-11 w-full rounded-lg border border-input bg-card px-3 text-base md:h-10 md:text-sm";
+const selectClass = "flex h-11 w-full rounded-xl border border-input bg-card px-3 text-base md:h-10 md:text-sm";
 
 /**
  * 個人の売上：日付・店舗・スタッフを選んで入れる。
@@ -35,6 +36,8 @@ export function StaffSales() {
   const { month, usableShops, colors, shopName, isOwner } = useApp();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [entries, setEntries] = useState<StaffSalesEntry[]>([]);
+  const [types, setTypes] = useState<SalesType[]>([]);
+  const typeName = (id: string | null) => (id ? types.find((t) => t.id === id)?.name : undefined);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -45,6 +48,7 @@ export function StaffSales() {
     date: defaultDateFor(month),
     shopId,
     staffId,
+    typeId: "",
     amount: "",
     customers: "",
     note: "",
@@ -72,10 +76,11 @@ export function StaffSales() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.all([fetchStaff(), fetchStaffSalesEntries(monthStart(month), monthEnd(month))])
-      .then(([staffRows, entryRows]) => {
+    Promise.all([fetchStaff(), fetchStaffSalesEntries(monthStart(month), monthEnd(month)), fetchSalesTypes()])
+      .then(([staffRows, entryRows, typeRows]) => {
         if (!active) return;
         setStaff(staffRows);
+        setTypes(typeRows);
         setEntries(entryRows);
       })
       .catch((error) => toast.error(`読み込めませんでした: ${describeError(error)}`))
@@ -107,6 +112,7 @@ export function StaffSales() {
     const values = {
       shop_id: form.shopId,
       staff_id: form.staffId,
+      type_id: form.typeId || null,
       sales_date: form.date,
       amount,
       customer_count: customers,
@@ -116,7 +122,7 @@ export function StaffSales() {
       ? await supabase.from("salon_sales_entries").update(values).eq("id", editingId)
       : await supabase.from("salon_sales_entries").insert(values);
     setSaving(false);
-    if (error) return toast.error(`保存できませんでした: ${describeError(error)}`);
+    if (error) return toast.error(String(error.message).includes("TYPE_SHOP_MISMATCH") ? "種類は、その店舗の種類から選んでください" : `保存できませんでした: ${describeError(error)}`);
     toast.success(`${formatDay(form.date)} ${staffName(form.staffId)}さんの売上を${editingId ? "直しました" : "入れました"}`);
     setEditingId(null);
     setForm((prev) => ({ ...emptyForm(prev.shopId, prev.staffId), date: prev.date }));
@@ -129,6 +135,7 @@ export function StaffSales() {
       date: entry.sales_date,
       shopId: entry.shop_id,
       staffId: entry.staff_id,
+      typeId: entry.type_id ?? "",
       amount: String(entry.amount),
       customers: entry.customer_count != null ? String(entry.customer_count) : "",
       note: entry.note ?? "",
@@ -156,12 +163,13 @@ export function StaffSales() {
         entry.sales_date,
         shopName(entry.shop_id),
         staffName(entry.staff_id),
+        typeName(entry.type_id) ?? "",
         entry.amount,
         entry.customer_count,
         entry.note,
         enteredAtLabel(entry.created_at),
       ]);
-    downloadCsv(`個人売上_${month}.csv`, toCsv([["日付", "店舗", "スタッフ", "売上", "客数", "メモ", "入力日時"], ...rows]));
+    downloadCsv(`個人売上_${month}.csv`, toCsv([["日付", "店舗", "スタッフ", "種類", "売上", "客数", "メモ", "入力日時"], ...rows]));
   };
 
   const noStaffYet = !loading && usableShops.every((shop) => !activeStaffOf(shop.id).length);
@@ -202,7 +210,7 @@ export function StaffSales() {
                   <select
                     id="staff-sales-shop"
                     value={form.shopId}
-                    onChange={(e) => setForm({ ...form, shopId: e.target.value, staffId: "" })}
+                    onChange={(e) => setForm({ ...form, shopId: e.target.value, staffId: "", typeId: "" })}
                     className={selectClass}
                   >
                     {usableShops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
@@ -221,6 +229,17 @@ export function StaffSales() {
                   <p className="py-2 text-sm text-muted-foreground">この店舗にはスタッフが登録されていません</p>
                 )}
               </div>
+              {types.some((t) => t.shop_id === form.shopId && t.is_active) && (
+                <div>
+                  <Label htmlFor="staff-sales-type">種類（歩合の計算に使います・任意）</Label>
+                  <select id="staff-sales-type" value={form.typeId} onChange={(e) => setForm({ ...form, typeId: e.target.value })} className={selectClass}>
+                    <option value="">指定なし</option>
+                    {types
+                      .filter((t) => t.shop_id === form.shopId && (t.is_active || t.id === form.typeId))
+                      .map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <Label htmlFor="staff-sales-amount">売上（円・税込）</Label>
                 <Input
@@ -335,7 +354,7 @@ export function StaffSales() {
                     <button type="button" onClick={() => edit(entry)} className="min-w-0 flex-1 text-left">
                       <span className="block text-sm font-medium">{staffName(entry.staff_id)}</span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {shopName(entry.shop_id)} ・ {entry.customer_count != null ? `${entry.customer_count}人 ・ ` : ""}
+                        {shopName(entry.shop_id)} ・ {typeName(entry.type_id) ? `${typeName(entry.type_id)} ・ ` : ""}{entry.customer_count != null ? `${entry.customer_count}人 ・ ` : ""}
                         {entry.note ? `${entry.note} ・ ` : ""}
                         入力 {enteredAtLabel(entry.created_at)}
                       </span>

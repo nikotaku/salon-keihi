@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Expense, ExpenseTemplate, MonthlySales, Payment, SalesEntry, Staff, StaffSalesEntry } from "./types";
+import type { CommissionRates, Expense, ExpenseTemplate, MonthlySales, Payment, SalesEntry, SalesType, Staff, StaffSalesEntry } from "./types";
 
 export const EXPENSE_COLUMNS =
   "id,shop_id,expense_date,category_id,amount,payment_method,vendor,description,receipt_path,template_id,created_at";
@@ -44,7 +44,7 @@ export function fetchSales(fromMonth: string, toMonth: string) {
   );
 }
 
-export const SALES_ENTRY_COLUMNS = "id,shop_id,staff_id,sales_date,amount,customer_count,note,created_at";
+export const SALES_ENTRY_COLUMNS = "id,shop_id,staff_id,type_id,sales_date,amount,customer_count,note,created_at";
 
 // 日付ごとの売上（fromDate / toDate は YYYY-MM-DD）
 export function fetchSalesEntries(fromDate: string, toDate: string) {
@@ -71,7 +71,7 @@ export async function fetchStaff() {
   return (data || []) as Staff[];
 }
 
-export const STAFF_SALES_COLUMNS = "id,shop_id,staff_id,sales_date,amount,customer_count,note,created_at";
+export const STAFF_SALES_COLUMNS = "id,shop_id,staff_id,type_id,sales_date,amount,customer_count,note,created_at";
 
 // スタッフごとの日別売上（fromDate / toDate は YYYY-MM-DD）
 // 店舗の売上（salon_sales_entries）のうち、担当が入っているもの。店舗の合計・利益にもそのまま入る。
@@ -123,4 +123,32 @@ export async function fetchPostedTemplateIds(month: string) {
     .not("template_id", "is", null);
   if (error) throw error;
   return new Set(((data || []) as Array<{ template_id: string }>).map((row) => row.template_id));
+}
+
+// 売上の種類（使わないものも含む。並び順どおり）
+export async function fetchSalesTypes() {
+  const { data, error } = await supabase
+    .from("salon_sales_types")
+    .select("id,shop_id,name,sort_order,is_active")
+    .order("sort_order")
+    .order("created_at");
+  if (error) throw error;
+  return (data || []) as SalesType[];
+}
+
+// 歩合（％）。オーナー以外は空で返ってくる
+export async function fetchCommissionRates(): Promise<CommissionRates> {
+  const [d, p] = await Promise.all([
+    supabase.from("salon_type_default_rates").select("type_id,rate"),
+    supabase.from("salon_commission_rates").select("staff_id,type_id,rate"),
+  ]);
+  if (d.error) throw d.error;
+  if (p.error) throw p.error;
+  const defaults: CommissionRates["defaults"] = {};
+  for (const row of (d.data || []) as { type_id: string; rate: number }[]) defaults[row.type_id] = Number(row.rate);
+  const perStaff: CommissionRates["perStaff"] = {};
+  for (const row of (p.data || []) as { staff_id: string; type_id: string; rate: number }[]) {
+    (perStaff[row.staff_id] ??= {})[row.type_id] = Number(row.rate);
+  }
+  return { defaults, perStaff };
 }
