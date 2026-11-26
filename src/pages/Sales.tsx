@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout";
@@ -57,6 +57,15 @@ function ShopSales() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const staffById = useMemo(() => new Map(staff.map((s) => [s.id, s])), [staff]);
   const [form, setForm] = useState<Form>(() => emptyForm(presetShop));
+  // 右下の「＋ 売上」から来たら、金額の欄に入る
+  const amountRef = useRef<HTMLInputElement>(null);
+  const newKey = searchParams.get("new");
+  useEffect(() => {
+    if (!newKey) return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    const t = window.setTimeout(() => amountRef.current?.focus(), 250);
+    return () => window.clearTimeout(t);
+  }, [newKey]);
 
   useEffect(() => {
     setForm((prev) => ({ ...emptyForm(prev.shopId || usableShops[0]?.id) }));
@@ -199,7 +208,7 @@ function ShopSales() {
               </div>
               <div>
                 <Label htmlFor="sales-amount">売上（円・税込）</Label>
-                <Input id="sales-amount" inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="text-lg font-semibold tabular" placeholder="例: 42000" />
+                <Input id="sales-amount" ref={amountRef} inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="text-lg font-semibold tabular" placeholder="例: 42000" />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -327,13 +336,18 @@ export default function Sales() {
   const [searchParams] = useSearchParams();
   const [tab, setTabState] = useState<SalesTab>(() => {
     if (searchParams.get("tab") === "staff") return "staff";
-    if (searchParams.get("shop")) return "shop";
+    if (searchParams.get("shop") || searchParams.get("new")) return "shop";
     try {
       return localStorage.getItem(TAB_KEY) === "staff" ? "staff" : "shop";
     } catch {
       return "shop";
     }
   });
+  // 売上の画面を開いたまま「＋ 売上」を押したときも、店舗の売上の入力に切り替える
+  const newKeyTop = searchParams.get("new");
+  useEffect(() => {
+    if (newKeyTop) setTabState("shop");
+  }, [newKeyTop]);
   const setTab = (next: SalesTab) => {
     setTabState(next);
     try {
