@@ -153,7 +153,7 @@ function StaffSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>スタッフ（個人の売上用）</CardTitle>
+        <CardTitle>スタッフ（売上の担当）</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {loading ? (
@@ -205,7 +205,7 @@ function StaffSection() {
             );
           })
         )}
-        <p className="text-xs text-muted-foreground">売上画面の「個人の売上」で選べるスタッフです。アプリにログインしない人も名前だけで登録できます。辞めた人は「在籍」を外すと、過去の売上は残したまま候補から消えます。</p>
+        <p className="text-xs text-muted-foreground">売上を入れるときに「担当」として選べるスタッフです。アプリにログインしない人も名前だけで登録できます。辞めた人は「在籍」を外すと、過去の売上は残したまま候補から消えます。</p>
       </CardContent>
     </Card>
   );
