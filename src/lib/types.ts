@@ -58,6 +58,7 @@ export interface SalesEntry {
   id: string;
   shop_id: string;
   staff_id: string | null; // 担当（だれの売上か）。任意
+  type_id: string | null; // 種類（回数券・体験など）。歩合の計算に使う。任意
   sales_date: string;
   amount: number;
   customer_count: number | null;
@@ -87,6 +88,7 @@ export interface StaffSalesEntry {
   id: string;
   shop_id: string;
   staff_id: string;
+  type_id: string | null;
   sales_date: string;
   amount: number;
   customer_count: number | null;
@@ -110,4 +112,19 @@ export interface Payment {
   image_paths: string[];
   sort_order: number;
   created_at: string;
+}
+
+// 売上の種類（店舗ごと。例：回数券・月額コース・初回体験）。歩合はこの種類ごとに決める
+export interface SalesType {
+  id: string;
+  shop_id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+// 歩合（％）。種類の標準と、人ごと。人ごとがあればそちらを使う（オーナーだけ読める）
+export interface CommissionRates {
+  defaults: Record<string, number>; // type_id -> ％
+  perStaff: Record<string, Record<string, number>>; // staff_id -> type_id -> ％
 }

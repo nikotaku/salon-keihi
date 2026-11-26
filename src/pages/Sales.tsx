@@ -20,18 +20,20 @@ import {
   shortMonthLabel,
   yen,
 } from "@/lib/format";
-import { fetchSales, fetchSalesEntries, fetchStaff } from "@/lib/queries";
+import { fetchSales, fetchSalesEntries, fetchSalesTypes, fetchStaff } from "@/lib/queries";
 import { enteredAtLabel, groupEntriesByDate, totalsByShop } from "@/lib/salesEntries";
 import { supabase } from "@/lib/supabase";
-import type { MonthlySales, SalesEntry, Staff } from "@/lib/types";
+import type { MonthlySales, SalesEntry, SalesType, Staff } from "@/lib/types";
 import { cn, describeError } from "@/lib/utils";
 import { tint, TINT_BORDER, TINT_CARD, TINT_ROW } from "@/lib/summary";
 import { StaffSales } from "@/components/StaffSales";
+import { Commission } from "@/components/Commission";
 
 interface Form {
   date: string;
   shopId: string;
   staffId: string; // 担当（空なら指定なし）
+  typeId: string; // 種類（空なら指定なし）
   amount: string;
   customers: string;
   note: string;
@@ -53,9 +55,11 @@ function ShopSales() {
   const [searchParams] = useSearchParams();
   // 店舗ページの「売上を入力」から来たときは、その店舗を最初から選んでおく
   const presetShop = usableShops.some((s) => s.id === searchParams.get("shop")) ? searchParams.get("shop")! : undefined;
-  const emptyForm = (shopId = usableShops[0]?.id ?? ""): Form => ({ date: defaultDateFor(month), shopId, staffId: "", amount: "", customers: "", note: "" });
+  const emptyForm = (shopId = usableShops[0]?.id ?? ""): Form => ({ date: defaultDateFor(month), shopId, staffId: "", typeId: "", amount: "", customers: "", note: "" });
   const [staff, setStaff] = useState<Staff[]>([]);
   const staffById = useMemo(() => new Map(staff.map((s) => [s.id, s])), [staff]);
+  const [types, setTypes] = useState<SalesType[]>([]);
+  const typeById = useMemo(() => new Map(types.map((t) => [t.id, t])), [types]);
   const [form, setForm] = useState<Form>(() => emptyForm(presetShop));
   // 右下の「＋ 売上」から来たら、金額の欄に入る
   const amountRef = useRef<HTMLInputElement>(null);
@@ -81,12 +85,13 @@ function ShopSales() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.all([fetchSalesEntries(monthStart(month), monthEnd(month)), fetchSales(months[0], month), fetchStaff()])
-      .then(([entryRows, monthly, staffRows]) => {
+    Promise.all([fetchSalesEntries(monthStart(month), monthEnd(month)), fetchSales(months[0], month), fetchStaff(), fetchSalesTypes()])
+      .then(([entryRows, monthly, staffRows, typeRows]) => {
         if (!active) return;
         setEntries(entryRows);
         setHistory(monthly);
         setStaff(staffRows);
+        setTypes(typeRows);
       })
       .catch((error) => toast.error(`読み込めませんでした: ${describeError(error)}`))
       .finally(() => active && setLoading(false));
@@ -110,12 +115,19 @@ function ShopSales() {
     if (amount === null) return toast.error("売上の金額を入れてください");
     if (form.customers.trim() && customers === null) return toast.error("客数は数字で入れてください");
     setSaving(true);
-    const values = { shop_id: form.shopId, staff_id: form.staffId || null, sales_date: form.date, amount, customer_count: customers, note: form.note.trim() || null };
+    const values = { shop_id: form.shopId, staff_id: form.staffId || null, type_id: form.typeId || null, sales_date: form.date, amount, customer_count: customers, note: form.note.trim() || null };
     const { error } = editingId
       ? await supabase.from("salon_sales_entries").update(values).eq("id", editingId)
       : await supabase.from("salon_sales_entries").insert(values);
     setSaving(false);
-    if (error) return toast.error(String(error.message).includes("STAFF_SHOP_MISMATCH") ? "担当は、その店舗のスタッフから選んでください" : `保存できませんでした: ${describeError(error)}`);
+    if (error) {
+      const m = String(error.message);
+      return toast.error(
+        m.includes("STAFF_SHOP_MISMATCH") ? "担当は、その店舗のスタッフから選んでください"
+          : m.includes("TYPE_SHOP_MISMATCH") ? "種類は、その店舗の種類から選んでください"
+            : `保存できませんでした: ${describeError(error)}`,
+      );
+    }
     const who = form.staffId ? `（${staffById.get(form.staffId)?.name ?? "担当"}）` : "";
     toast.success(`${formatDay(form.date)} ${shopName(form.shopId)}${who}の売上を${editingId ? "直しました" : "入れました"}`);
     setEditingId(null);
@@ -129,6 +141,7 @@ function ShopSales() {
       date: entry.sales_date,
       shopId: entry.shop_id,
       staffId: entry.staff_id ?? "",
+      typeId: entry.type_id ?? "",
       amount: String(entry.amount),
       customers: entry.customer_count != null ? String(entry.customer_count) : "",
       note: entry.note ?? "",
@@ -150,8 +163,8 @@ function ShopSales() {
   const exportCsv = () => {
     const rows = [...visibleEntries]
       .sort((a, b) => a.sales_date.localeCompare(b.sales_date) || a.created_at.localeCompare(b.created_at))
-      .map((entry) => [entry.sales_date, shopName(entry.shop_id), entry.staff_id ? staffById.get(entry.staff_id)?.name ?? "" : "", entry.amount, entry.customer_count, entry.note, enteredAtLabel(entry.created_at)]);
-    downloadCsv(`売上_${month}.csv`, toCsv([["日付", "店舗", "担当", "売上", "客数", "メモ", "入力日時"], ...rows]));
+      .map((entry) => [entry.sales_date, shopName(entry.shop_id), entry.staff_id ? staffById.get(entry.staff_id)?.name ?? "" : "", entry.type_id ? typeById.get(entry.type_id)?.name ?? "" : "", entry.amount, entry.customer_count, entry.note, enteredAtLabel(entry.created_at)]);
+    downloadCsv(`売上_${month}.csv`, toCsv([["日付", "店舗", "担当", "種類", "売上", "客数", "メモ", "入力日時"], ...rows]));
   };
 
   return (
@@ -181,9 +194,14 @@ function ShopSales() {
                     onChange={(e) => {
                       // 店舗を変えたら、その店舗にいない担当は外す
                       const next = e.target.value;
-                      setForm({ ...form, shopId: next, staffId: staffById.get(form.staffId)?.shop_id === next ? form.staffId : "" });
+                      setForm({
+                        ...form,
+                        shopId: next,
+                        staffId: staffById.get(form.staffId)?.shop_id === next ? form.staffId : "",
+                        typeId: typeById.get(form.typeId)?.shop_id === next ? form.typeId : "",
+                      });
                     }}
-                    className="flex h-11 w-full rounded-lg border border-input bg-card px-3 text-base md:h-10 md:text-sm"
+                    className="flex h-11 w-full rounded-xl border border-input bg-card px-3 text-base md:h-10 md:text-sm"
                   >
                     {usableShops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
                   </select>
@@ -195,7 +213,7 @@ function ShopSales() {
                   id="sales-staff"
                   value={form.staffId}
                   onChange={(e) => setForm({ ...form, staffId: e.target.value })}
-                  className="flex h-11 w-full rounded-lg border border-input bg-card px-3 text-base md:h-10 md:text-sm"
+                  className="flex h-11 w-full rounded-xl border border-input bg-card px-3 text-base md:h-10 md:text-sm"
                 >
                   <option value="">指定なし</option>
                   {staff
@@ -206,6 +224,22 @@ function ShopSales() {
                   <p className="mt-1 text-[11px] text-muted-foreground">この店舗のスタッフは「設定 → スタッフ」で登録できます</p>
                 )}
               </div>
+              {types.some((t) => t.shop_id === form.shopId && t.is_active) && (
+                <div>
+                  <Label htmlFor="sales-type">種類（歩合の計算に使います・任意）</Label>
+                  <select
+                    id="sales-type"
+                    value={form.typeId}
+                    onChange={(e) => setForm({ ...form, typeId: e.target.value })}
+                    className="flex h-11 w-full rounded-xl border border-input bg-card px-3 text-base md:h-10 md:text-sm"
+                  >
+                    <option value="">指定なし</option>
+                    {types
+                      .filter((t) => t.shop_id === form.shopId && (t.is_active || t.id === form.typeId))
+                      .map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <Label htmlFor="sales-amount">売上（円・税込）</Label>
                 <Input id="sales-amount" ref={amountRef} inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="text-lg font-semibold tabular" placeholder="例: 42000" />
@@ -307,6 +341,7 @@ function ShopSales() {
                         <span className="block text-sm font-medium">
                           {shopName(entry.shop_id)}
                           {entry.staff_id && <span className="ml-1.5 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground">{staffById.get(entry.staff_id)?.name ?? "（削除されたスタッフ）"}</span>}
+                          {entry.type_id && typeById.get(entry.type_id) && <span className="ml-1 rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">{typeById.get(entry.type_id)!.name}</span>}
                         </span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {entry.customer_count != null ? `${entry.customer_count}人 ・ ` : ""}
@@ -329,20 +364,26 @@ function ShopSales() {
   );
 }
 
-type SalesTab = "shop" | "staff";
+type SalesTab = "shop" | "staff" | "commission";
 const TAB_KEY = "salon-keihi:sales-tab";
 
 export default function Sales() {
+  const { isOwner } = useApp();
   const [searchParams] = useSearchParams();
   const [tab, setTabState] = useState<SalesTab>(() => {
-    if (searchParams.get("tab") === "staff") return "staff";
+    const q = searchParams.get("tab");
+    if (q === "staff" || q === "commission") return q;
     if (searchParams.get("shop") || searchParams.get("new")) return "shop";
     try {
-      return localStorage.getItem(TAB_KEY) === "staff" ? "staff" : "shop";
+      const saved = localStorage.getItem(TAB_KEY);
+      return saved === "staff" || saved === "commission" ? saved : "shop";
     } catch {
       return "shop";
     }
   });
+  // 歩合はオーナーだけ
+  const shownTab: SalesTab = tab === "commission" && !isOwner ? "shop" : tab;
+  const tabs: [SalesTab, string][] = [["shop", "店舗の売上"], ["staff", "個人の売上"], ...(isOwner ? [["commission", "歩合"] as [SalesTab, string]] : [])];
   // 売上の画面を開いたまま「＋ 売上」を押したときも、店舗の売上の入力に切り替える
   const newKeyTop = searchParams.get("new");
   useEffect(() => {
@@ -359,24 +400,24 @@ export default function Sales() {
   return (
     <Layout title="売上" actions={<MonthSwitcher />}>
       <div className="space-y-4">
-        <div role="tablist" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-          {([["shop", "店舗の売上"], ["staff", "個人の売上"]] as const).map(([key, label]) => (
+        <div role="tablist" className={cn("grid gap-1 rounded-xl bg-muted p-1", tabs.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
+          {tabs.map(([key, label]) => (
             <button
               key={key}
               type="button"
               role="tab"
-              aria-selected={tab === key}
+              aria-selected={shownTab === key}
               onClick={() => setTab(key)}
               className={cn(
-                "rounded-md py-2 text-sm font-medium transition-colors",
-                tab === key ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground",
+                "rounded-lg py-2 text-sm font-medium transition-colors",
+                shownTab === key ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {label}
             </button>
           ))}
         </div>
-        {tab === "shop" ? <ShopSales /> : <StaffSales />}
+        {shownTab === "shop" ? <ShopSales /> : shownTab === "staff" ? <StaffSales /> : <Commission />}
       </div>
     </Layout>
   );
