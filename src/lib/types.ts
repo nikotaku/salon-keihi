@@ -82,7 +82,7 @@ export interface Staff {
   is_active: boolean;
 }
 
-// スタッフごとの日別売上（店舗の売上とは別に入れる内訳。店舗の合計・利益には入らない）
+// スタッフごとの日別売上（店舗の売上のうち担当が入っているもの。店舗の合計・利益にも入る）
 export interface StaffSalesEntry {
   id: string;
   shop_id: string;

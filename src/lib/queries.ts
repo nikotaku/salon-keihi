@@ -74,11 +74,13 @@ export async function fetchStaff() {
 export const STAFF_SALES_COLUMNS = "id,shop_id,staff_id,sales_date,amount,customer_count,note,created_at";
 
 // スタッフごとの日別売上（fromDate / toDate は YYYY-MM-DD）
+// 店舗の売上（salon_sales_entries）のうち、担当が入っているもの。店舗の合計・利益にもそのまま入る。
 export function fetchStaffSalesEntries(fromDate: string, toDate: string) {
   return fetchAll<StaffSalesEntry>((from, to) =>
     supabase
-      .from("salon_staff_sales_entries")
+      .from("salon_sales_entries")
       .select(STAFF_SALES_COLUMNS)
+      .not("staff_id", "is", null)
       .gte("sales_date", fromDate)
       .lte("sales_date", toDate)
       .order("sales_date", { ascending: false })

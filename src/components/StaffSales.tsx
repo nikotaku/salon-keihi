@@ -27,8 +27,9 @@ interface Form {
 const selectClass = "flex h-11 w-full rounded-lg border border-input bg-card px-3 text-base md:h-10 md:text-sm";
 
 /**
- * 個人の売上：日付・店舗・スタッフを選んで入れる（salon_staff_sales_entries）。
- * 店舗の売上とは別に入れる内訳なので、店舗の合計・利益・ダッシュボードには入らない。
+ * 個人の売上：日付・店舗・スタッフを選んで入れる。
+ * 中身は店舗の売上（salon_sales_entries）に担当つきで入るので、店舗の合計・利益・ダッシュボードにもそのまま入る。
+ * 店舗の売上の画面で担当を選んで入れたものも、ここに出る（2か所に入れる必要はない）。
  */
 export function StaffSales() {
   const { month, usableShops, colors, shopName, isOwner } = useApp();
@@ -112,8 +113,8 @@ export function StaffSales() {
       note: form.note.trim() || null,
     };
     const { error } = editingId
-      ? await supabase.from("salon_staff_sales_entries").update(values).eq("id", editingId)
-      : await supabase.from("salon_staff_sales_entries").insert(values);
+      ? await supabase.from("salon_sales_entries").update(values).eq("id", editingId)
+      : await supabase.from("salon_sales_entries").insert(values);
     setSaving(false);
     if (error) return toast.error(`保存できませんでした: ${describeError(error)}`);
     toast.success(`${formatDay(form.date)} ${staffName(form.staffId)}さんの売上を${editingId ? "直しました" : "入れました"}`);
@@ -142,7 +143,7 @@ export function StaffSales() {
 
   const remove = async (entry: StaffSalesEntry) => {
     if (!window.confirm(`${formatDay(entry.sales_date)} ${staffName(entry.staff_id)}さん ${yen(entry.amount)} を消しますか？`)) return;
-    const { error } = await supabase.from("salon_staff_sales_entries").delete().eq("id", entry.id);
+    const { error } = await supabase.from("salon_sales_entries").delete().eq("id", entry.id);
     if (error) return toast.error(`消せませんでした: ${describeError(error)}`);
     if (editingId === entry.id) cancelEdit();
     setReloadKey((key) => key + 1);
@@ -252,7 +253,7 @@ export function StaffSales() {
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground">
-                個人の売上は店舗の売上とは別に記録されます（店舗の合計・利益・ダッシュボードには入りません）。同じ日に何回入れてもOKです。
+                ここで入れた売上は店舗の売上にも入り、利益に反映されます。店舗の売上の画面で担当を選んで入れた分もここに出るので、どちらか1か所に入れればOKです。
               </p>
             </form>
           )}
