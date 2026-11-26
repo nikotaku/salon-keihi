@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, MailCheck } from "lucide-react";
+import { KeyRound, Loader2, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
@@ -10,6 +10,26 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  // ホーム画面に追加したアプリでは、メールのリンクがSafariで開いてしまうので、パスワードでも入れるようにする
+  const [mode, setMode] = useState<"link" | "password">("link");
+  const [password, setPassword] = useState("");
+
+  const signInWithPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setLoading(false);
+    if (signInError) {
+      setError(
+        /invalid login credentials/i.test(signInError.message)
+          ? "メールアドレスかパスワードが違います。パスワードをまだ決めていなければ、ログインリンクで入ってから「設定」で決めてください"
+          : /rate limit|security purposes/i.test(signInError.message)
+            ? "続けて試しすぎています。少し待ってからもう一度お試しください"
+            : "ログインできませんでした。もう一度お試しください",
+      );
+    }
+  };
 
   const sendLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +78,22 @@ export default function Login() {
                 メールアドレスを入れ直す
               </Button>
             </div>
+          ) : mode === "password" ? (
+            <form onSubmit={signInWithPassword} className="space-y-4">
+              <div>
+                <Label htmlFor="email">メールアドレス</Label>
+                <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="password">パスワード</Label>
+                <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" size="lg" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="animate-spin" />}
+                ログイン
+              </Button>
+            </form>
           ) : (
             <form onSubmit={sendLink} className="space-y-4">
               <div>
@@ -72,7 +108,27 @@ export default function Login() {
             </form>
           )}
 
-          {!sentTo && <p className="text-xs text-muted-foreground">パスワードは不要です。招待されたメールアドレスを入れると、ログイン用のリンクが届きます。</p>}
+          {!sentTo && (
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-xs text-muted-foreground">
+                {mode === "link"
+                  ? "招待されたメールアドレスを入れると、ログイン用のリンクが届きます。"
+                  : "パスワードは、ログインしたあと「設定」→「ログイン用パスワード」で決められます。"}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  setMode(mode === "link" ? "password" : "link");
+                  setError(null);
+                }}
+              >
+                {mode === "link" ? <><KeyRound /> パスワードでログイン</> : <><MailCheck /> メールのリンクでログイン</>}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

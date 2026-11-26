@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, Copy, Link2, Loader2, LogOut, Plus, Share2, Trash2, UserPlus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, KeyRound, Link2, Loader2, LogOut, Plus, Share2, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -480,6 +480,60 @@ function MembersSection() {
   );
 }
 
+// ホーム画面に追加したアプリでは、メールのリンクを押すとSafariが開いてしまうので、パスワードでも入れるようにする
+function PasswordSection() {
+  const [password, setPassword] = useState("");
+  const [again, setAgain] = useState("");
+  const [saving, setSaving] = useState(false);
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) return toast.error("パスワードは8文字以上にしてください");
+    if (password !== again) return toast.error("確認用のパスワードが違います");
+    setSaving(true);
+    const { error } = await supabase.auth.updateUser({ password });
+    setSaving(false);
+    if (error) {
+      return toast.error(
+        /different from the old/i.test(error.message)
+          ? "いまと同じパスワードです"
+          : /weak|characters/i.test(error.message)
+            ? "もう少し複雑なパスワードにしてください"
+            : `保存できませんでした: ${describeError(error)}`,
+      );
+    }
+    setPassword("");
+    setAgain("");
+    toast.success("パスワードを決めました。次からはパスワードでもログインできます");
+  };
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>ログイン用パスワード</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={save} className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            スマホのホーム画面に追加して使うときは、ログイン画面の「パスワードでログイン」から入ります。ここで決めたパスワードを使ってください（8文字以上）。
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="new-password">新しいパスワード</Label>
+              <Input id="new-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="new-password-again">もう一度</Label>
+              <Input id="new-password-again" type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} />
+            </div>
+          </div>
+          <Button type="submit" size="sm" disabled={saving || !password}>
+            {saving ? <Loader2 className="animate-spin" /> : <KeyRound />} パスワードを決める
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { session, isOwner, member } = useApp();
   return (
@@ -496,6 +550,7 @@ export default function Settings() {
             </Button>
           </CardContent>
         </Card>
+        <PasswordSection />
         <ShopsSection />
         <StaffSection />
         <CategoriesSection />
