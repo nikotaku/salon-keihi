@@ -324,15 +324,15 @@ export default function Payments() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <p className="text-xs text-muted-foreground">{monthLabel(month)}の支払い（{summary.count}件）</p>
-                <p className="text-xl font-bold tabular">{yen(summary.total)}</p>
+                <p className="num text-xl font-medium">{yen(summary.total)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">支払済み（{summary.paidCount}件）</p>
-                <p className="text-xl font-bold tabular text-good">{yen(summary.paid)}</p>
+                <p className="num text-xl font-medium text-good">{yen(summary.paid)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">残り（{summary.count - summary.paidCount}件）</p>
-                <p className="text-xl font-bold tabular">{yen(summary.remaining)}</p>
+                <p className="num text-xl font-medium">{yen(summary.remaining)}</p>
               </div>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-muted" aria-label={`支払済み ${progress}%`}>

@@ -18,6 +18,7 @@ export default {
         accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
         good: "hsl(var(--good))",
+        gold: "hsl(var(--gold))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -25,7 +26,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', '"Segoe UI"', '"Hiragino Sans"', '"Noto Sans JP"', "sans-serif"],
+        sans: ['"Noto Sans JP"', '"Hiragino Sans"', "system-ui", "-apple-system", '"Segoe UI"', "sans-serif"],
+        serif: ['"Noto Serif JP"', '"Hiragino Mincho ProN"', '"Yu Mincho"', "serif"],
       },
     },
   },

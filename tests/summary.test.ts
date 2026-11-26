@@ -131,10 +131,10 @@ test("前月比は前月が0なら出さない", () => {
 
 test("店舗の色は並び順で決まり、全店共通は別の色", () => {
   const colors = shopColors([...shops].reverse());
-  assert.equal(colors.nail, "#2a78d6");
-  assert.equal(colors.kokubun, "#eb6834");
-  assert.equal(colors.lash, "#1baf7a");
-  assert.equal(colors[COMMON_KEY], "#eda100");
+  assert.equal(colors.nail, "#7fa6c9");
+  assert.equal(colors.kokubun, "#c4906f");
+  assert.equal(colors.lash, "#8fae8b");
+  assert.equal(colors[COMMON_KEY], "#c2a46b");
 });
 
 test("店舗ごと：その店舗の経費だけを数え、全店共通やほかの店舗は入れない", async () => {

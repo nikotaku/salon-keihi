@@ -5,10 +5,10 @@ import type { ShopTrendPoint } from "@/lib/summary";
 import { cn } from "@/lib/utils";
 
 const SURFACE = "#ffffff";
-const GRID = "#e1e0d9";
-const AXIS = "#c3c2b7";
-const MUTED = "#898781";
-const EXPENSE = "#b9b7ad";
+const GRID = "#ece5dc";
+const AXIS = "#d6ccc0";
+const MUTED = "#7a6f68";
+const EXPENSE = "#d9c9cd";
 
 function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;

@@ -40,8 +40,9 @@ export default function Login() {
       <Card className="w-full max-w-sm">
         <CardContent className="space-y-5 p-6">
           <div>
-            <p className="text-xs text-muted-foreground">ネイル・国分町サロン・アイラッシュ・アイブロー</p>
-            <h1 className="text-xl font-bold">サロン経費管理</h1>
+            <p className="brand-eyebrow">SALON MANAGEMENT</p>
+            <h1 className="mt-1 font-serif text-xl font-semibold tracking-widest">サロン管理</h1>
+            <p className="mt-1 text-xs text-muted-foreground">ネイル・国分町サロン・アイラッシュ・アイブロー</p>
           </div>
 
           {sentTo ? (

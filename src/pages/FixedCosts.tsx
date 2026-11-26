@@ -158,7 +158,7 @@ export default function FixedCosts() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs text-muted-foreground">毎月の固定費（{active.length}件）</p>
-                <p className="text-2xl font-bold tabular">{yen(monthlyTotal)}</p>
+                <p className="num text-2xl font-medium">{yen(monthlyTotal)}</p>
               </div>
               {active.length > 0 && (
                 unposted.length > 0 ? (

@@ -167,19 +167,19 @@ export default function ShopPage() {
               <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-[1.4fr_1fr_1fr_1fr] sm:items-end">
                 <div className="col-span-2 sm:col-span-1">
                   <p className="text-xs text-muted-foreground">{monthLabel(month)}の利益</p>
-                  <p className={cn("mt-1 text-4xl font-bold tracking-tight md:text-5xl", now.profit !== null && now.profit < 0 && "text-destructive")}>
+                  <p className={cn("num mt-1 text-[44px] font-medium leading-tight md:text-5xl", now.profit !== null && now.profit < 0 && "text-destructive")}>
                     {now.profit === null ? "—" : yen(now.profit)}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">利益率 {percent(now.margin)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">売上</p>
-                  <p className="mt-1 text-xl font-semibold">{now.sales === null ? <span className="text-muted-foreground">未入力</span> : yen(now.sales)}</p>
+                  <p className="num mt-1 text-xl font-medium">{now.sales === null ? <span className="text-muted-foreground">未入力</span> : yen(now.sales)}</p>
                   <Delta ratio={now.sales !== null && prev.sales !== null ? changeRatio(now.sales, prev.sales) : null} upIsGood />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">経費</p>
-                  <p className="mt-1 text-xl font-semibold">{yen(now.expenses)}</p>
+                  <p className="num mt-1 text-xl font-medium">{yen(now.expenses)}</p>
                   <Delta ratio={changeRatio(now.expenses, prev.expenses)} upIsGood={false} />
                 </div>
                 <dl className="col-span-2 grid grid-cols-2 gap-x-6 gap-y-1 border-t pt-3 text-sm sm:col-span-1 sm:block sm:space-y-1 sm:border-0 sm:pt-0">

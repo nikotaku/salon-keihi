@@ -250,7 +250,7 @@ function ShopSales() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-xl font-bold tabular">{yen(total?.amount ?? monthly?.amount ?? 0)}</p>
+                  <p className="num text-xl font-medium">{yen(total?.amount ?? monthly?.amount ?? 0)}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {total
                       ? `${monthLabel(month)}・${total.days}日分${total.customers != null ? `・${total.customers}人` : ""}`

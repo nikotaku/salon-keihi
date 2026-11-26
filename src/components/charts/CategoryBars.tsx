@@ -1,7 +1,7 @@
 import { yen } from "@/lib/format";
 import type { MonthSummary } from "@/lib/summary";
 
-const BAR = "#2a78d6";
+const BAR = "#9a5468";
 
 // 科目別の経費（多い順の横棒）。1系列なので色は1つ、値は棒の横に文字で出す
 export function CategoryBars({ rows, total, limit = 8 }: { rows: MonthSummary["byCategory"]; total: number; limit?: number }) {

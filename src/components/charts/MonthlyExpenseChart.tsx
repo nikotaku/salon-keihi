@@ -10,9 +10,9 @@ interface Series {
 }
 
 const SURFACE = "#ffffff";
-const GRID = "#e1e0d9";
-const AXIS = "#c3c2b7";
-const MUTED = "#898781";
+const GRID = "#ece5dc";
+const AXIS = "#d6ccc0";
+const MUTED = "#7a6f68";
 
 function ChartTooltip({ active, payload, label, series }: TooltipProps<number, string> & { series: Series[] }) {
   if (!active || !payload?.length) return null;

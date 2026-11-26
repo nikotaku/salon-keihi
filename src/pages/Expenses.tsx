@@ -141,7 +141,7 @@ export default function Expenses() {
         <Card>
           <CardContent className="flex items-baseline justify-between py-3">
             <span className="text-sm text-muted-foreground">{visible.length}件</span>
-            <span className="text-lg font-bold tabular">合計 {yen(total)}</span>
+            <span className="num text-lg font-medium">合計 {yen(total)}</span>
           </CardContent>
         </Card>
 
