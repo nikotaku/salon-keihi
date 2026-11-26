@@ -5,25 +5,27 @@
 @layer base {
   :root {
     color-scheme: light;
-    --background: 40 20% 98%;
-    --foreground: 30 3% 10%;
+    /* 上品・サロンらしい：アイボリーの背景、くすみローズ、ゴールドの差し色 */
+    --background: 36 33% 96%;
+    --foreground: 15 9% 16%;
     --card: 0 0% 100%;
-    --card-foreground: 30 3% 10%;
-    --primary: 333 71% 40%;
+    --card-foreground: 15 9% 16%;
+    --primary: 343 30% 47%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 12% 94%;
-    --secondary-foreground: 30 3% 15%;
-    --muted: 40 12% 95%;
-    --muted-foreground: 40 2% 38%;
-    --accent: 333 60% 96%;
-    --accent-foreground: 333 71% 32%;
-    --destructive: 0 72% 51%;
+    --secondary: 35 25% 93%;
+    --secondary-foreground: 15 9% 20%;
+    --muted: 35 25% 94%;
+    --muted-foreground: 23 8% 44%;
+    --accent: 343 35% 94%;
+    --accent-foreground: 343 32% 36%;
+    --destructive: 4 42% 50%;
     --destructive-foreground: 0 0% 100%;
-    --good: 120 100% 19%;
-    --border: 40 10% 88%;
-    --input: 40 10% 84%;
-    --ring: 333 71% 40%;
-    --radius: 0.75rem;
+    --good: 135 21% 36%;
+    --gold: 35 36% 52%;
+    --border: 33 27% 89%;
+    --input: 33 20% 84%;
+    --ring: 343 30% 47%;
+    --radius: 1rem;
   }
 
   * {
@@ -45,6 +47,18 @@
 @layer utilities {
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+  /* 大きな金額は明朝で（桁がそろうように） */
+  .num {
+    font-family: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: 0.01em;
+  }
+  .brand-eyebrow {
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    color: hsl(var(--gold));
   }
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);

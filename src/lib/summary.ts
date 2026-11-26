@@ -133,8 +133,9 @@ export function changeRatio(current: number, previous: number) {
 }
 
 // グラフの色。店舗は並び順で固定の色を持つ（絞り込んでも色が変わらない）。全店共通は4番目の色
-const SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
-const COMMON_COLOR = "#eda100";
+// 店舗の色（くすみカラー）：水色・テラコッタ・セージ・ローズ・ラベンダー・ベージュ・ミント
+const SERIES = ["#7fa6c9", "#c4906f", "#8fae8b", "#c98a9d", "#a294c4", "#b59c70", "#7fb0a8"];
+const COMMON_COLOR = "#c2a46b";
 
 export function shopColors(shops: Shop[]) {
   const ordered = [...shops].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, "ja"));
@@ -228,6 +229,6 @@ export function tint(hex: string | undefined, alpha: number) {
   return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alpha})`;
 }
 // 背景・枠線の濃さ（一覧の1件・カード・枠）
-export const TINT_ROW = 0.08;
-export const TINT_CARD = 0.11;
+export const TINT_ROW = 0.12;
+export const TINT_CARD = 0.14;
 export const TINT_BORDER = 0.4;
